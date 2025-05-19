@@ -1,0 +1,233 @@
+<!-- static/login.html -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>身份验证 - OpenRouter 代理控制核心</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #00ffff; /* 科技蓝/青色 */
+      --secondary-color: #f0f8ff; /* 淡青色，用于文本 */
+      --background-color: #0a0f1f; /* 深邃的宇宙蓝 */
+      --container-bg: rgba(10, 25, 47, 0.85); /* 半透明深蓝容器背景 */
+      --border-color: rgba(0, 255, 255, 0.3); /* 青色边框 */
+      --glow-color: rgba(0, 255, 255, 0.5); /* 青色辉光 */
+      --input-bg: rgba(255, 255, 255, 0.05);
+      --input-border-color: rgba(0, 255, 255, 0.2);
+
+      --message-error-bg: rgba(255, 77, 77, 0.15);
+      --message-error-text: #ff4d4d;
+      --message-error-border: #ff4d4d;
+      --message-error-shadow: #ff4d4d;
+
+      --message-success-bg: rgba(77, 255, 77, 0.15);
+      --message-success-text: #4dff4d;
+      --message-success-border: #4dff4d;
+      --message-success-shadow: #4dff4d;
+
+      --message-info-bg: rgba(77, 166, 255, 0.15);
+      --message-info-text: var(--primary-color); /* 使用主色调 */
+      --message-info-border: var(--primary-color);
+      --message-info-shadow: var(--primary-color);
+
+      --font-primary: 'Orbitron', sans-serif;
+      --font-secondary: 'Roboto', sans-serif;
+    }
+
+    body {
+      font-family: var(--font-secondary);
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; background-color: var(--background-color);
+      background-image:
+              radial-gradient(circle at 20% 20%, rgba(0, 191, 255, 0.1) 0%, transparent 40%),
+              radial-gradient(circle at 80% 70%, rgba(75, 0, 130, 0.1) 0%, transparent 40%);
+      color: var(--secondary-color); margin: 0; overflow: hidden; position: relative;
+    }
+
+    body::before { /* 背景粒子效果 */
+      content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background-image:
+              radial-gradient(var(--primary-color) 0.5px, transparent 0.5px),
+              radial-gradient(var(--primary-color) 0.5px, transparent 0.5px);
+      background-size: 20px 20px; background-position: 0 0, 10px 10px;
+      opacity: 0.05; animation: moveParticles 60s linear infinite; z-index: -1;
+    }
+    @keyframes moveParticles {
+      0% { background-position: 0 0, 10px 10px; }
+      100% { background-position: 1000px 500px, 1010px 510px; }
+    }
+
+    .login-container {
+      background-color: var(--container-bg); padding: 40px 50px;
+      border-radius: 12px; border: 1px solid var(--border-color);
+      box-shadow: 0 0 25px var(--glow-color), 0 0 50px var(--glow-color) inset;
+      text-align: center; width: 380px;
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      animation: fadeInGlow 1.5s ease-out; position: relative; z-index: 1;
+    }
+    @keyframes fadeInGlow {
+      from { opacity: 0; transform: scale(0.9) translateY(20px); box-shadow: 0 0 5px var(--glow-color), 0 0 10px var(--glow-color) inset; }
+      to { opacity: 1; transform: scale(1) translateY(0); box-shadow: 0 0 25px var(--glow-color), 0 0 50px var(--glow-color) inset; }
+    }
+
+    h1 {
+      font-family: var(--font-primary); color: var(--primary-color);
+      margin-bottom: 30px; font-size: 1.8em; /* 略微调整 */
+      line-height: 1.3; /* 改善多行标题的可读性 */
+      letter-spacing: 1.5px; /* 略微调整 */
+      text-shadow: 0 0 5px var(--primary-color), 0 0 10px var(--primary-color);
+      animation: flickerTitle 3s infinite alternate;
+    }
+    @keyframes flickerTitle { /* 标题的闪烁动画 */
+      0%, 18%, 22%, 25%, 53%, 57%, 100% {
+        text-shadow: 0 0 4px var(--primary-color), 0 0 11px var(--primary-color), 0 0 19px var(--primary-color),
+        0 0 40px var(--glow-color), 0 0 70px var(--glow-color); opacity: 1;
+      }
+      20%, 24%, 55% { text-shadow: none; opacity: 0.8; }
+    }
+
+    label {
+      display: block; text-align: left; margin-bottom: 8px;
+      font-weight: 400; font-size: 0.95em; color: var(--secondary-color); opacity: 0.8;
+    }
+
+    input[type="password"] {
+      width: calc(100% - 24px); padding: 14px 12px; margin-bottom: 25px;
+      border: 1px solid var(--input-border-color); border-radius: 6px;
+      font-size: 1em; background-color: var(--input-bg); color: var(--secondary-color);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    input[type="password"]:focus {
+      outline: none; border-color: var(--primary-color); box-shadow: 0 0 10px var(--glow-color);
+    }
+    input[type="password"]::placeholder { color: rgba(240, 248, 255, 0.5); }
+
+    button {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, var(--primary-color), #007bff);
+      color: var(--background-color); font-family: var(--font-primary);
+      font-weight: 700; border: none; border-radius: 6px;
+      cursor: pointer; font-size: 1.1em; letter-spacing: 1px;
+      transition: all 0.3s ease; box-shadow: 0 0 10px rgba(0, 191, 255, 0.3);
+      position: relative; overflow: hidden;
+    }
+    button::before { /* 悬停光效 */
+      content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0;
+      background: rgba(255,255,255,0.2); border-radius: 50%;
+      transform: translate(-50%, -50%); transition: width 0.4s ease, height 0.4s ease; opacity: 0;
+    }
+    button:hover::before { width: 300px; height: 300px; opacity: 1; }
+    button:hover {
+      background: linear-gradient(135deg, #00d4ff, var(--primary-color));
+      box-shadow: 0 0 15px var(--primary-color), 0 0 25px var(--primary-color);
+      transform: translateY(-2px);
+    }
+    button:active { transform: translateY(0px) scale(0.98); box-shadow: 0 0 5px var(--primary-color); }
+
+    .message {
+      padding: 12px 15px; margin-bottom: 20px; border-radius: 6px;
+      font-size: 0.9em; text-align: center; border: 1px solid transparent;
+      animation: messageFadeIn 0.5s ease; display: none; /* 默认隐藏 */
+    }
+    @keyframes messageFadeIn {
+      from { opacity:0; transform: translateY(-10px); } to { opacity:1; transform: translateY(0); }
+    }
+    .error {
+      background-color: var(--message-error-bg); color: var(--message-error-text);
+      border-color: var(--message-error-border); box-shadow: 0 0 8px var(--message-error-shadow);
+    }
+    .success {
+      background-color: var(--message-success-bg); color: var(--message-success-text);
+      border-color: var(--message-success-border); box-shadow: 0 0 8px var(--message-success-shadow);
+    }
+    .info {
+      background-color: var(--message-info-bg); color: var(--message-info-text);
+      border-color: var(--message-info-border); box-shadow: 0 0 8px var(--message-info-shadow);
+    }
+
+    /* 提交按钮加载状态 */
+    button.loading { cursor: not-allowed; }
+    button.loading span { visibility: hidden; } /* 隐藏原始文本 */
+    button.loading::after { /* 加载动画 */
+      content: ""; position: absolute; width: 20px; height: 20px;
+      top: calc(50% - 10px); left: calc(50% - 10px); /* 居中 */
+      border: 3px solid rgba(10, 15, 31, 0.3); /* 动画轨道的颜色 */
+      border-top-color: var(--background-color); /* 动画活动部分的颜色 */
+      border-radius: 50%; animation: spinAnimation 0.8s linear infinite;
+    }
+    @keyframes spinAnimation { to { transform: rotate(360deg); } }
+
+  </style>
+</head>
+<body>
+
+<div class="login-container">
+  <h1>控制核心<br>身份验证</h1>
+  <div id="messageDisplay" class="message"></div> <!-- 用于显示所有消息 -->
+  <form id="loginForm">
+    <label for="password">授权密钥 (管理员):</label>
+    <input type="password" id="password" name="password" required placeholder="在此输入授权密钥...">
+    <button type="submit" id="loginButton"><span>授权访问</span></button>
+  </form>
+</div>
+
+<script>
+  const form = document.getElementById('loginForm');
+  const passwordInput = document.getElementById('password');
+  const messageDisplayDiv = document.getElementById('messageDisplay');
+  const loginButton = document.getElementById('loginButton');
+
+  function showMessage(text, type = 'info') {
+    messageDisplayDiv.textContent = text;
+    messageDisplayDiv.className = 'message ' + type; // 重置类名并添加新类型
+    messageDisplayDiv.style.display = 'block';
+  }
+
+  // 检查是否有来自服务器的初始消息 (通过模板注入)
+  const serverMessage = "{{.InitialMessage}}"; // Go模板语法
+  const serverMessageType = "{{.MessageType}}";
+  if (serverMessage && serverMessage !== "<no value>" && serverMessage.trim() !== "") {
+    showMessage(serverMessage, serverMessageType || 'info');
+  }
+
+  form.addEventListener('submit', async function(event) {
+    event.preventDefault(); // 阻止表单默认提交
+    messageDisplayDiv.style.display = 'none'; // 提交时隐藏旧消息
+
+    const password = passwordInput.value;
+    if (!password) {
+      showMessage('请输入授权密钥。', 'error');
+      return;
+    }
+
+    loginButton.classList.add('loading'); // 添加加载动画
+    loginButton.disabled = true;          // 禁用按钮
+
+    try {
+      const response = await fetch('/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: password }),
+      });
+
+      if (response.ok) {
+        showMessage('验证成功，正在进入核心控制台...', 'success');
+        setTimeout(() => { window.location.href = '/admin/dashboard'; }, 1000); // 延迟跳转
+      } else {
+        const errorData = await response.json().catch(() => ({})); // 尝试解析JSON，失败则为空对象
+        const errorMsg = errorData.error?.message || '授权失败：密钥不匹配或系统通讯异常。';
+        showMessage(errorMsg, 'error');
+      }
+    } catch (error) {
+      console.error('登录系统错误:', error);
+      showMessage('系统通讯链路中断，请检查网络或联系管理员。', 'error');
+    } finally {
+      loginButton.classList.remove('loading'); // 移除加载动画
+      loginButton.disabled = false;             // 重新启用按钮
+    }
+  });
+</script>
+</body>
+</html>

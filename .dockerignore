@@ -1,0 +1,38 @@
+# .dockerignore
+
+# Git 相关的
+.git
+.gitignore
+
+# Docker 相关的（避免将 Dockerfile 本身复制到镜像中）
+Dockerfile
+.dockerignore
+
+# Go 模块缓存（如果本地有）
+vendor/
+
+# 编译输出（如果本地编译过）
+# 根据你的可执行文件名调整
+openrouter-proxy
+*.exe
+*.test
+
+# IDE 和编辑器相关的配置文件
+.vscode/
+.idea/
+*.iml
+*.suo
+
+# 操作系统相关的临时文件
+Thumbs.db
+.DS_Store
+
+# 日志文件
+*.log
+
+# 敏感的 .env 文件 (配置应通过环境变量注入到容器中)
+.env
+
+# 其他本地开发文件或测试数据
+tmp/
+testdata/
