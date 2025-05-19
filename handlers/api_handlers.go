@@ -1,3 +1,4 @@
+// handlers/api_handlers.go
 package handlers
 
 import (
@@ -39,7 +40,7 @@ const (
 
 	// meaningfulDataTimeoutDuration: 从接收到第一个数据块开始，等待接收到包含实际聊天内容（非空delta）的数据块的最大时长。
 	// 这有助于检测流已开始但长时间不发送有效内容的情况。
-	meaningfulDataTimeoutDuration = 30 * time.Second
+	meaningfulDataTimeoutDuration = 200 * time.Second
 )
 
 // ListModelsHandler 处理 `/v1/models` GET 请求。
@@ -227,12 +228,12 @@ func generateChatResponse(c *gin.Context, requestData models.ChatCompletionReque
 		return
 	}
 
-	retriesLeft := config.AppSettings.RetryWithNewKeyCount // 从配置获取初始重试次数
-	var lastExceptionDetail = "在多次尝试使用不同密钥后未能成功处理请求。"      // 默认的最终错误信息
-	var lastStatusCode = http.StatusServiceUnavailable     // 默认的最终错误状态码
-	var lastErrorType = "api_error"                        // 默认的最终错误类型
-	activeRequestKeysTried := make(map[string]bool)        // 记录在本次 `generateChatResponse` 调用中已尝试过的密钥，避免对同一客户端请求用同一坏密钥反复重试。
-	clientOriginalContext := c.Request.Context()           // 客户端原始请求的上下文
+	retriesLeft := config.AppSettings.RetryWithNewKeyCount                // 从配置获取初始重试次数
+	var lastExceptionDetail = "在多次尝试使用不同密钥后未能成功处理请求。" // 默认的最终错误信息
+	var lastStatusCode = http.StatusServiceUnavailable                    // 默认的最终错误状态码
+	var lastErrorType = "api_error"                                       // 默认的最终错误类型
+	activeRequestKeysTried := make(map[string]bool)                       // 记录在本次 `generateChatResponse` 调用中已尝试过的密钥，避免对同一客户端请求用同一坏密钥反复重试。
+	clientOriginalContext := c.Request.Context()                          // 客户端原始请求的上下文
 
 	// 主重试循环：只要还有重试次数，就继续尝试。
 	for retriesLeft >= 0 {

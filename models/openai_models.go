@@ -1,12 +1,13 @@
+// models/openai_models.go
 package models
 
 // --- OpenAI 兼容的聊天模型 ---
 
 // Message 表示聊天会话中的单个消息。
 type Message struct {
-	Role    string  `json:"role"`           // 消息发送者的角色 (例如: "system", "user", "assistant", "tool")。
-	Content string  `json:"content"`        // 消息的文本内容。
-	Name    *string `json:"name,omitempty"` // 可选：消息发送者的名字。当 role 是 "tool" 时，这是工具调用的 ID。
+	Role    string      `json:"role"`           // 消息发送者的角色 (例如: "system", "user", "assistant", "tool")。
+	Content interface{} `json:"content"`        // 消息的内容。可以是字符串 (文本消息)，也可以是对象数组 (多模态消息，例如包含图片)。
+	Name    *string     `json:"name,omitempty"` // 可选：消息发送者的名字。当 role 是 "tool" 时，这是工具调用的 ID。
 	// ToolCalls *[]ToolCall `json:"tool_calls,omitempty"` // 可选：由模型生成的工具调用列表 (当 role 是 "assistant" 时)。
 	// ToolCallID *string `json:"tool_call_id,omitempty"` // 可选：工具调用 ID (当 role 是 "tool" 时)。
 }
@@ -33,6 +34,8 @@ type ChatCompletionRequest struct {
 
 // SSEChoiceDelta 表示在 SSE (Server-Sent Events) 流中，choices 数组内 delta 对象的内容。
 // 它包含消息内容的增量部分。
+// 注意：如果上游 API 的流式响应中 delta.content 也是多模态的，这里可能也需要调整。
+// 但通常流式响应的 content 增量是字符串。如果遇到问题，再考虑修改。
 type SSEChoiceDelta struct {
 	Content *string `json:"content,omitempty"` // 消息内容的增量部分。
 	Role    *string `json:"role,omitempty"`    // 角色 (通常只在流的第一个 delta 中出现，如果角色变化)。
@@ -102,7 +105,7 @@ type OpenRouterModel struct {
 	Description   string      `json:"description"`    // 模型描述
 	Pricing       interface{} `json:"pricing"`        // 定价信息 (可以是 map[string]string 或更复杂的结构，具体结构取决于 OpenRouter 的 API)
 	ContextLength int         `json:"context_length"` // 模型支持的最大上下文长度 (token 数)
-	Architecture  *struct {   // 可选：模型的架构信息
+	Architecture  *struct { // 可选：模型的架构信息
 		Modality        string `json:"modality"`         // 模型处理的模态 (例如 "text", "image")
 		Tokenizer       string `json:"tokenizer"`        // 使用的 tokenizer (例如 "gpt2", "claude")
 		DefaultTemplate string `json:"default_template"` // 默认的提示模板
