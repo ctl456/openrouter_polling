@@ -40,7 +40,8 @@ const (
 
 	// meaningfulDataTimeoutDuration: 从接收到第一个数据块开始，等待接收到包含实际聊天内容（非空delta）的数据块的最大时长。
 	// 这有助于检测流已开始但长时间不发送有效内容的情况。
-	meaningfulDataTimeoutDuration = 200 * time.Second
+	// 【注意】如果在此期间收到任何非空行（包括注释或心跳），此超时会被重置。
+	meaningfulDataTimeoutDuration = 30 * time.Second
 )
 
 // ListModelsHandler 处理 `/v1/models` GET 请求。
@@ -228,12 +229,12 @@ func generateChatResponse(c *gin.Context, requestData models.ChatCompletionReque
 		return
 	}
 
-	retriesLeft := config.AppSettings.RetryWithNewKeyCount                // 从配置获取初始重试次数
-	var lastExceptionDetail = "在多次尝试使用不同密钥后未能成功处理请求。" // 默认的最终错误信息
-	var lastStatusCode = http.StatusServiceUnavailable                    // 默认的最终错误状态码
-	var lastErrorType = "api_error"                                       // 默认的最终错误类型
-	activeRequestKeysTried := make(map[string]bool)                       // 记录在本次 `generateChatResponse` 调用中已尝试过的密钥，避免对同一客户端请求用同一坏密钥反复重试。
-	clientOriginalContext := c.Request.Context()                          // 客户端原始请求的上下文
+	retriesLeft := config.AppSettings.RetryWithNewKeyCount // 从配置获取初始重试次数
+	var lastExceptionDetail = "在多次尝试使用不同密钥后未能成功处理请求。"      // 默认的最终错误信息
+	var lastStatusCode = http.StatusServiceUnavailable     // 默认的最终错误状态码
+	var lastErrorType = "api_error"                        // 默认的最终错误类型
+	activeRequestKeysTried := make(map[string]bool)        // 记录在本次 `generateChatResponse` 调用中已尝试过的密钥，避免对同一客户端请求用同一坏密钥反复重试。
+	clientOriginalContext := c.Request.Context()           // 客户端原始请求的上下文
 
 	// 主重试循环：只要还有重试次数，就继续尝试。
 	for retriesLeft >= 0 {
@@ -293,7 +294,7 @@ func generateChatResponse(c *gin.Context, requestData models.ChatCompletionReque
 		//   errorDetailForError (string): 如果失败，记录的错误详情。
 		//   errorTypeForError (string): 如果失败，记录的错误类型。
 		success, retryNeeded, statusCode, errDetail, errType := attemptOpenRouterRequest(
-			attemptCtx, c, currentAPIKeyStatus, payloadBytes, isStreamForClientResponse, // 传递 ApiKeyStatus 而非仅 Key 字符串
+			attemptCtx, c, currentAPIKeyStatus, payloadBytes, isStreamForClientResponse,
 			clientOriginalContext,
 		)
 
@@ -353,7 +354,7 @@ func generateChatResponse(c *gin.Context, requestData models.ChatCompletionReque
 func attemptOpenRouterRequest(
 	attemptCtx context.Context,
 	c *gin.Context,
-	apiKeyStatus *apimanager.ApiKeyStatus, // 【修改】接收 ApiKeyStatus 对象
+	apiKeyStatus *apimanager.ApiKeyStatus,
 	payloadBytes []byte,
 	isStreamForClientResponse bool,
 	clientOriginalContext context.Context,
@@ -443,7 +444,7 @@ func attemptOpenRouterRequest(
 		// processStreamingResponse 会处理流的读取、超时、错误，并将数据转发给客户端。
 		// 它也会在适当的时候调用 ApiKeyMgr.RecordKeySuccess 或决定是否需要重试。
 		streamSuccess, streamRetryNeeded, streamErrStatusCode, streamErrDetail, streamErrType := processStreamingResponse(
-			attemptCtx, c, resp, apiKeyStatus, clientOriginalContext, // 传递 apiKeyStatus
+			attemptCtx, c, resp, apiKeyStatus, clientOriginalContext,
 		)
 
 		if !streamSuccess { // 如果流处理不完全成功
@@ -492,7 +493,7 @@ func processStreamingResponse(
 	attemptCtx context.Context,
 	c *gin.Context,
 	resp *http.Response,
-	apiKeyStatus *apimanager.ApiKeyStatus, // 【修改】接收 ApiKeyStatus 对象
+	apiKeyStatus *apimanager.ApiKeyStatus,
 	clientOriginalContext context.Context,
 ) (streamSuccess bool, streamRetryNeeded bool, statusCodeForError int, errorDetail string, errorType string) {
 	currentOpenRouterKey := apiKeyStatus.Key
@@ -593,11 +594,8 @@ func processStreamingResponse(
 		// --- 处理首次数据接收逻辑 ---
 		if firstChunkReceivedTime.IsZero() && (errRead == nil || (errRead == io.EOF && line != "")) { // 收到第一行数据（或EOF但行非空）
 			firstChunkReceivedTime = time.Now() // 记录时间
-			Log.Debugf("processStreamingResponse: 收到首块任何数据 (密钥: %s，耗时 %s): %q",
-				utils.SafeSuffix(currentOpenRouterKey), time.Since(firstChunkReceivedTime).Round(time.Millisecond), line) // firstChunkReceivedTime 此时是0，所以这里应该是启动时间
-
-			// 【修正】应该用一个变量记录请求开始时间，然后用 time.Since(requestStartTime)
-			// 这里简单起见，这个日志仅表示“已收到首块”，具体耗时需要外部计时。
+			Log.Debugf("processStreamingResponse: 收到首块任何数据 (密钥: %s，耗时 %s，原始行: %q)", // 【注意】这里的耗时是相对 firstChunkReceivedTime=Zero 时的，实际应该从请求开始计时
+				utils.SafeSuffix(currentOpenRouterKey), time.Since(firstChunkReceivedTime).Round(time.Millisecond), line)
 
 			firstAnyDataTimer.Stop() // 成功收到数据，停止 firstAnyDataTimer。
 
@@ -625,6 +623,25 @@ func processStreamingResponse(
 				}
 			}(meaningfulDataTimer, currentOpenRouterKey, meaningfulDataTimerChan, attemptCtx)
 			Log.Debugf("processStreamingResponse: 已启动 %v 的有意义数据超时计时器 (密钥: %s)", meaningfulDataTimeoutDuration, utils.SafeSuffix(currentOpenRouterKey))
+		}
+
+		// 【关键修改】: 如果已收到首块数据，但尚未收到有意义数据，并且当前成功读取到非空行，则重置有意义数据定时器。
+		// 这样可以允许“思考中”的数据块（如注释行或空内容的数据块）作为心跳来延长等待有意义内容的时间。
+		if !firstChunkReceivedTime.IsZero() && atomic.LoadInt32(&receivedMeaningfulData) == 0 && errRead == nil && len(strings.TrimSpace(line)) > 0 {
+			if meaningfulDataTimer != nil {
+				Log.Debugf("processStreamingResponse: 收到活动行 (密钥: %s)，重置有意义数据定时器。行: %q", utils.SafeSuffix(currentOpenRouterKey), strings.TrimSpace(line))
+				// 停止旧的timer并尝试清空其channel，以防旧的超时信号干扰。
+				// Stop 返回 false 表示 timer 已经过期或已经被 Stop。
+				if !meaningfulDataTimer.Stop() {
+					// 尝试消耗可能已发送的信号，避免主select循环捕获到旧的超时。
+					select {
+					case <-meaningfulDataTimerChan:
+						Log.Debugf("processStreamingResponse: 从 meaningfulDataTimerChan 中消耗了一个旧的超时信号。")
+					default:
+					}
+				}
+				meaningfulDataTimer.Reset(meaningfulDataTimeoutDuration)
+			}
 		}
 
 		// 根据当前流的状态动态调整读取截止时间。
@@ -686,8 +703,7 @@ func processStreamingResponse(
 				}
 			} else if strings.HasPrefix(trimmedLine, ":") { // SSE 注释/心跳行
 				Log.Debugf("processStreamingResponse: 收到注释/心跳行 (密钥 %s): %q", utils.SafeSuffix(currentOpenRouterKey), trimmedLine)
-				// 注释行也算是服务器有响应。如果需要，可以重置 meaningfulDataTimer，
-				// 但通常我们只关心包含实际内容的聊天数据作为“有意义数据”。
+				// 注释行也算是服务器有响应。上面的【关键修改】部分会处理重置 meaningfulDataTimer。
 			}
 		} // 结束 if len(line) > 0
 

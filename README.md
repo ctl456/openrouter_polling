@@ -77,7 +77,7 @@ b. **运行 Docker 容器**:
 ```bash
 docker run -d \
   -p 8000:8000 \
-  --name my-openrouter-proxy \
+  --name my-openrouter-polling \
   -e OPENROUTER_API_KEYS="sk-or-v1key1...,sk-or-v1key2...:5" \
   -e ADMIN_PASSWORD="your_strong_admin_password" \
   -e SESSION_SECRET_KEY="your_super_secret_random_string" \
