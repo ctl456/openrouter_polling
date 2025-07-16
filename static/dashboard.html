@@ -1,4 +1,3 @@
-<!-- static/dashboard.html -->
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -8,11 +7,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #00ffff; /* 科技蓝/青色 */
-            --secondary-color: #f0f8ff; /* 淡青色，用于文本 */
-            --background-color: #0a0f1f; /* 深邃的宇宙蓝 */
-            --container-bg: rgba(10, 25, 47, 0.85); /* 半透明深蓝容器背景 */
-            --section-bg: rgba(15, 30, 57, 0.7); /* 区域背景，比容器略深或不同 */
+            --primary-color: #00ffff;
+            --secondary-color: #f0f8ff;
+            --background-color: #0a0f1f;
+            --container-bg: rgba(10, 25, 47, 0.85);
+            --section-bg: rgba(15, 30, 57, 0.7);
             --border-color: rgba(0, 255, 255, 0.3);
             --glow-color: rgba(0, 255, 255, 0.5);
             --input-bg: rgba(255, 255, 255, 0.05);
@@ -20,268 +19,83 @@
             --table-border-color: rgba(0, 255, 255, 0.2);
             --table-header-bg: rgba(0, 191, 255, 0.15);
             --table-row-hover-bg: rgba(0, 191, 255, 0.1);
-
-            --status-active-color: #4dff4d; /* 亮绿色 */
-            --status-inactive-color: #ff4d4d; /* 亮红色 */
-            --status-cooldown-color: #ffd700; /* 亮黄色/金色 */
-
+            --status-active-color: #4dff4d;
+            --status-inactive-color: #ff4d4d;
+            --status-cooldown-color: #ffd700;
             --button-primary-bg-start: var(--primary-color);
-            --button-primary-bg-end: #007bff; /* 深一点的蓝 */
+            --button-primary-bg-end: #007bff;
             --button-primary-hover-bg-start: #00d4ff;
             --button-primary-hover-bg-end: var(--primary-color);
             --button-primary-shadow: rgba(0, 191, 255, 0.4);
             --button-primary-hover-shadow: var(--primary-color);
-
-            --button-danger-bg: #e60073; /* 危险操作按钮背景 - 深洋红 */
+            --button-danger-bg: #e60073;
             --button-danger-hover-bg: #ff0084;
             --button-danger-glow: rgba(230, 0, 115, 0.6);
-
-            --font-primary: 'Orbitron', sans-serif; /* 科技感标题字体 */
-            --font-secondary: 'Roboto', sans-serif; /* 内容字体 */
+            --font-primary: 'Orbitron', sans-serif;
+            --font-secondary: 'Roboto', sans-serif;
         }
-
         body {
-            font-family: var(--font-secondary);
-            margin: 0;
-            background-color: var(--background-color);
-            color: var(--secondary-color);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            overflow-x: hidden;
-            background-image:
-                    radial-gradient(circle at 15% 85%, rgba(0, 191, 255, 0.15) 0%, transparent 50%),
-                    radial-gradient(circle at 85% 15%, rgba(75, 0, 130, 0.15) 0%, transparent 50%);
+            font-family: var(--font-secondary); margin: 0; background-color: var(--background-color);
+            color: var(--secondary-color); display: flex; flex-direction: column; min-height: 100vh;
+            overflow-x: hidden; background-image: radial-gradient(circle at 15% 85%, rgba(0, 191, 255, 0.15) 0%, transparent 50%), radial-gradient(circle at 85% 15%, rgba(75, 0, 130, 0.15) 0%, transparent 50%);
             position: relative;
         }
-
-        body::before { /* 背景粒子效果 */
-            content: "";
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-image:
-                    radial-gradient(var(--primary-color) 0.5px, transparent 0.5px),
-                    radial-gradient(var(--primary-color) 0.5px, transparent 0.5px);
-            background-size: 25px 25px;
-            background-position: 0 0, 12.5px 12.5px;
-            opacity: 0.07;
-            animation: moveParticles 90s linear infinite;
-            z-index: -1;
+        body::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(var(--primary-color) 0.5px, transparent 0.5px), radial-gradient(var(--primary-color) 0.5px, transparent 0.5px);
+            background-size: 25px 25px; background-position: 0 0, 12.5px 12.5px; opacity: 0.07;
+            animation: moveParticles 90s linear infinite; z-index: -1;
         }
-
-        @keyframes moveParticles {
-            0% { background-position: 0 0, 12.5px 12.5px; }
-            100% { background-position: 1000px 500px, 1012.5px 512.5px; }
-        }
-
+        @keyframes moveParticles { 0% { background-position: 0 0, 12.5px 12.5px; } 100% { background-position: 1000px 500px, 1012.5px 512.5px; } }
         .header {
             background: linear-gradient(135deg, rgba(10, 25, 47, 0.9), rgba(0, 100, 150, 0.7));
-            color: white;
-            padding: 20px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-            border-bottom: 1px solid var(--border-color);
-            position: sticky; top: 0; z-index: 1000;
-            backdrop-filter: blur(5px); /* 毛玻璃效果 */
+            color: white; padding: 20px 40px; display: flex; justify-content: space-between;
+            align-items: center; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); border-bottom: 1px solid var(--border-color);
+            position: sticky; top: 0; z-index: 1000; backdrop-filter: blur(5px);
         }
-
-        .header h1 {
-            margin: 0; font-size: 2em; font-family: var(--font-primary);
-            letter-spacing: 1px; text-shadow: 0 0 8px var(--primary-color);
-        }
-
-        .container {
-            flex: 1; max-width: 1000px; margin: 30px auto; padding: 30px;
-            background-color: var(--container-bg);
-            border-radius: 10px; border: 1px solid var(--border-color);
-            box-shadow: 0 0 30px var(--glow-color), 0 0 60px var(--glow-color) inset;
-            backdrop-filter: blur(10px);
-            animation: fadeInContainer 1s ease-out;
-        }
-
-        @keyframes fadeInContainer {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        h2 {
-            font-family: var(--font-primary); color: var(--primary-color);
-            border-bottom: 1px solid var(--border-color); padding-bottom: 15px;
-            margin-top: 0; margin-bottom: 25px; font-size: 1.6em;
-            letter-spacing: 0.5px; text-shadow: 0 0 5px var(--primary-color);
-            display: flex; justify-content: space-between; align-items: center;
-        }
-
-        .section {
-            margin-bottom: 35px; padding: 25px;
-            border: 1px solid var(--border-color); border-radius: 8px;
-            background-color: var(--section-bg);
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.1) inset;
-            transition: box-shadow 0.3s ease;
-        }
-        .section:hover {
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.1) inset, 0 0 10px var(--glow-color);
-        }
-
-        table {
-            width: 100%; border-collapse: separate; border-spacing: 0;
-            margin-bottom: 20px; font-size: 0.9em;
-            border: 1px solid var(--table-border-color); border-radius: 6px;
-            overflow: hidden; /* 配合圆角 */
-        }
-
-        th, td {
-            border-bottom: 1px solid var(--table-border-color);
-            padding: 12px 15px; /* 略微减小 padding */
-            text-align: left; vertical-align: middle;
-            transition: background-color 0.2s ease;
-        }
+        .header h1 { margin: 0; font-size: 2em; font-family: var(--font-primary); letter-spacing: 1px; text-shadow: 0 0 8px var(--primary-color); }
+        .container { flex: 1; max-width: 1000px; margin: 30px auto; padding: 30px; background-color: var(--container-bg); border-radius: 10px; border: 1px solid var(--border-color); box-shadow: 0 0 30px var(--glow-color), 0 0 60px var(--glow-color) inset; backdrop-filter: blur(10px); animation: fadeInContainer 1s ease-out; }
+        @keyframes fadeInContainer { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        h2 { font-family: var(--font-primary); color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-top: 0; margin-bottom: 25px; font-size: 1.6em; letter-spacing: 0.5px; text-shadow: 0 0 5px var(--primary-color); display: flex; justify-content: space-between; align-items: center; }
+        .section { margin-bottom: 35px; padding: 25px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--section-bg); box-shadow: 0 0 15px rgba(0, 255, 255, 0.1) inset; transition: box-shadow 0.3s ease; }
+        .section:hover { box-shadow: 0 0 15px rgba(0, 255, 255, 0.1) inset, 0 0 10px var(--glow-color); }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 20px; font-size: 0.9em; border: 1px solid var(--table-border-color); border-radius: 6px; overflow: hidden; }
+        th, td { border-bottom: 1px solid var(--table-border-color); padding: 12px 15px; text-align: left; vertical-align: middle; transition: background-color 0.2s ease; }
         td:last-child, th:last-child { border-right: none; }
         tr:last-child td { border-bottom: none; }
-
-        th {
-            background-color: var(--table-header-bg); font-weight: 700;
-            font-family: var(--font-secondary); color: var(--primary-color);
-            text-transform: uppercase; letter-spacing: 0.5px;
-        }
-
+        th { background-color: var(--table-header-bg); font-weight: 700; font-family: var(--font-secondary); color: var(--primary-color); text-transform: uppercase; letter-spacing: 0.5px; }
         tr:hover td { background-color: var(--table-row-hover-bg); }
-
         .status-active { color: var(--status-active-color); font-weight: bold; text-shadow: 0 0 5px var(--status-active-color);}
         .status-inactive { color: var(--status-inactive-color); font-weight: bold; text-shadow: 0 0 5px var(--status-inactive-color);}
         .status-cooldown { color: var(--status-cooldown-color); font-weight: bold; text-shadow: 0 0 5px var(--status-cooldown-color);}
-
-        .mono { /* 用于显示密钥后缀等技术文本 */
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
-            font-size: 0.9em; background-color: rgba(0, 255, 255, 0.08);
-            color: var(--primary-color); padding: 3px 6px; border-radius: 4px;
-            border: 1px solid rgba(0, 255, 255, 0.15); display: inline-block;
-        }
-
-        label {
-            display: block; margin-bottom: 8px; font-weight: 400;
-            color: var(--secondary-color); opacity: 0.9; font-size: 0.95em;
-        }
-
-        input[type="text"] {
-            width: calc(100% - 28px); padding: 12px 14px;
-            margin-bottom: 15px; border: 1px solid var(--input-border-color);
-            border-radius: 6px; font-size: 0.95em;
-            background-color: var(--input-bg); color: var(--secondary-color);
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-        input[type="text"]:focus {
-            outline: none; border-color: var(--primary-color);
-            box-shadow: 0 0 10px var(--glow-color);
-        }
-        input[type="text"]::placeholder { color: rgba(240, 248, 255, 0.4); }
-
-        button {
-            padding: 10px 20px; font-family: var(--font-primary);
-            background: linear-gradient(135deg, var(--button-primary-bg-start), var(--button-primary-bg-end));
-            color: var(--background-color); border: none; border-radius: 6px;
-            cursor: pointer; font-size: 0.95em; font-weight: 700;
-            letter-spacing: 0.5px; transition: all 0.3s ease;
-            box-shadow: 0 0 8px var(--button-primary-shadow);
-            position: relative; overflow: hidden; min-width: 100px;
-        }
-        button::before { /* 点击/悬停光效 */
-            content: ''; position: absolute; top: 50%; left: 50%;
-            width: 0; height: 0; background: rgba(255,255,255,0.2);
-            border-radius: 50%; transform: translate(-50%, -50%);
-            transition: width 0.4s ease, height 0.4s ease; opacity: 0;
-        }
+        .mono { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; font-size: 0.9em; background-color: rgba(0, 255, 255, 0.08); color: var(--primary-color); padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(0, 255, 255, 0.15); display: inline-block; }
+        label { display: block; margin-bottom: 8px; font-weight: 400; color: var(--secondary-color); opacity: 0.9; font-size: 0.95em; }
+        textarea { width: calc(100% - 28px); padding: 12px 14px; margin-bottom: 15px; border: 1px solid var(--input-border-color); border-radius: 6px; font-size: 0.95em; background-color: var(--input-bg); color: var(--secondary-color); font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace; resize: vertical; min-height: 80px; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
+        textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 10px var(--glow-color); }
+        textarea::placeholder { color: rgba(240, 248, 255, 0.4); }
+        button { padding: 10px 20px; font-family: var(--font-primary); background: linear-gradient(135deg, var(--button-primary-bg-start), var(--button-primary-bg-end)); color: var(--background-color); border: none; border-radius: 6px; cursor: pointer; font-size: 0.95em; font-weight: 700; letter-spacing: 0.5px; transition: all 0.3s ease; box-shadow: 0 0 8px var(--button-primary-shadow); position: relative; overflow: hidden; min-width: 100px; }
+        button::before { content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0; background: rgba(255,255,255,0.2); border-radius: 50%; transform: translate(-50%, -50%); transition: width 0.4s ease, height 0.4s ease; opacity: 0; }
         button:hover::before { width: 300px; height: 300px; opacity: 1; }
-        button:hover {
-            background: linear-gradient(135deg, var(--button-primary-hover-bg-start), var(--button-primary-hover-bg-end));
-            box-shadow: 0 0 12px var(--button-primary-hover-shadow), 0 0 20px var(--button-primary-hover-shadow);
-            transform: translateY(-2px);
-        }
-        button:active {
-            transform: translateY(0px) scale(0.98);
-            box-shadow: 0 0 5px var(--button-primary-shadow);
-        }
-        button:disabled { /* 按钮禁用状态 */
-            background: grey; color: #ccc; cursor: not-allowed;
-            box-shadow: none; transform: none;
-        }
+        button:hover { background: linear-gradient(135deg, var(--button-primary-hover-bg-start), var(--button-primary-hover-bg-end)); box-shadow: 0 0 12px var(--button-primary-hover-shadow), 0 0 20px var(--button-primary-hover-shadow); transform: translateY(-2px); }
+        button:active { transform: translateY(0px) scale(0.98); box-shadow: 0 0 5px var(--button-primary-shadow); }
+        button:disabled { background: grey; color: #ccc; cursor: not-allowed; box-shadow: none; transform: none; }
         button:disabled::before { display: none; }
-
-
-        .refresh-btn { /* 刷新按钮特殊样式 */
-            background: transparent; border: 1px solid var(--primary-color);
-            color: var(--primary-color); margin-left: 15px;
-            font-size: 0.85em; padding: 8px 15px;
-            box-shadow: 0 0 5px rgba(0, 255, 255, 0.2);
-        }
-        .refresh-btn:hover {
-            background: var(--primary-color); color: var(--background-color);
-            box-shadow: 0 0 10px var(--primary-color);
-        }
-
-        .action-btn { /* 表格中的操作按钮 */
-            padding: 6px 12px; font-size: 0.85em; min-width: 70px;
-        }
-        .delete-btn { /* 特定于删除的样式 */
-            background: linear-gradient(135deg, var(--button-danger-bg), #c82333);
-            box-shadow: 0 0 8px var(--button-danger-glow); color: var(--secondary-color);
-        }
-        .delete-btn:hover {
-            background: linear-gradient(135deg, var(--button-danger-hover-bg), var(--button-danger-bg));
-            box-shadow: 0 0 12px var(--button-danger-glow), 0 0 20px var(--button-danger-glow);
-        }
-
-        .logout-btn { /* 登出按钮 */
-            background: var(--button-danger-bg);
-            box-shadow: 0 0 8px var(--button-danger-glow);
-        }
-        .logout-btn:hover {
-            background: var(--button-danger-hover-bg);
-            box-shadow: 0 0 12px var(--button-danger-glow), 0 0 20px var(--button-danger-glow);
-        }
-
-        .message { /* 用于显示操作结果反馈 */
-            padding: 12px 18px; margin-top:15px; border-radius: 6px;
-            font-size: 0.9em; text-align: center;
-            border: 1px solid transparent; animation: messageFadeIn 0.5s ease;
-        }
-        @keyframes messageFadeIn {
-            from { opacity:0; transform: translateY(-10px); }
-            to { opacity:1; transform: translateY(0); }
-        }
-        .error {
-            background-color: rgba(255, 77, 77, 0.15); color: var(--status-inactive-color);
-            border-color: var(--status-inactive-color); box-shadow: 0 0 8px var(--status-inactive-color);
-        }
-        .success {
-            background-color: rgba(77, 255, 77, 0.15); color: var(--status-active-color);
-            border-color: var(--status-active-color); box-shadow: 0 0 8px var(--status-active-color);
-        }
-        .info {
-            background-color: rgba(77, 166, 255, 0.15); color: var(--primary-color);
-            border-color: var(--primary-color); box-shadow: 0 0 8px var(--primary-color);
-        }
-
-
-        .footer {
-            text-align: center; padding: 25px; font-size: 0.85em;
-            color: rgba(240, 248, 255, 0.6);
-            border-top: 1px solid var(--border-color); margin-top: auto;
-            background-color: rgba(10, 25, 47, 0.5);
-        }
+        .refresh-btn { background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); margin-left: 15px; font-size: 0.85em; padding: 8px 15px; box-shadow: 0 0 5px rgba(0, 255, 255, 0.2); }
+        .refresh-btn:hover { background: var(--primary-color); color: var(--background-color); box-shadow: 0 0 10px var(--primary-color); }
+        .action-btn { padding: 6px 12px; font-size: 0.85em; min-width: 70px; }
+        .delete-btn { background: linear-gradient(135deg, var(--button-danger-bg), #c82333); box-shadow: 0 0 8px var(--button-danger-glow); color: var(--secondary-color); }
+        .delete-btn:hover { background: linear-gradient(135deg, var(--button-danger-hover-bg), var(--button-danger-bg)); box-shadow: 0 0 12px var(--button-danger-glow), 0 0 20px var(--button-danger-glow); }
+        .logout-btn { background: var(--button-danger-bg); box-shadow: 0 0 8px var(--button-danger-glow); }
+        .logout-btn:hover { background: var(--button-danger-hover-bg); box-shadow: 0 0 12px var(--button-danger-glow), 0 0 20px var(--button-danger-glow); }
+        .message { padding: 12px 18px; margin-top:15px; border-radius: 6px; font-size: 0.9em; text-align: center; border: 1px solid transparent; animation: messageFadeIn 0.5s ease; }
+        @keyframes messageFadeIn { from { opacity:0; transform: translateY(-10px); } to { opacity:1; transform: translateY(0); } }
+        .error { background-color: rgba(255, 77, 77, 0.15); color: var(--status-inactive-color); border-color: var(--status-inactive-color); box-shadow: 0 0 8px var(--status-inactive-color); }
+        .success { background-color: rgba(77, 255, 77, 0.15); color: var(--status-active-color); border-color: var(--status-active-color); box-shadow: 0 0 8px var(--status-active-color); }
+        .info { background-color: rgba(77, 166, 255, 0.15); color: var(--primary-color); border-color: var(--primary-color); box-shadow: 0 0 8px var(--primary-color); }
+        .footer { text-align: center; padding: 25px; font-size: 0.85em; color: rgba(240, 248, 255, 0.6); border-top: 1px solid var(--border-color); margin-top: auto; background-color: rgba(10, 25, 47, 0.5); }
         .footer #last-js-refresh-time { color: var(--primary-color); font-weight: bold; }
-
-        /* 表格加载动画 */
-        #apiKeyStatusTable tbody.loading td {
-            text-align: center; font-style: italic; color: var(--primary-color);
-            height: 100px; animation: pulseText 1.5s infinite ease-in-out;
-        }
-        @keyframes pulseText {
-            0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; }
-        }
-
+        #apiKeyStatusTable tbody.loading td { text-align: center; font-style: italic; color: var(--primary-color); height: 100px; animation: pulseText 1.5s infinite ease-in-out; }
+        @keyframes pulseText { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
     </style>
 </head>
 <body>
@@ -292,9 +106,9 @@
 <div class="container">
     <div class="section" id="add-key-section">
         <h2>接入新 OpenRouter 密钥节点</h2>
-        <label for="newApiKey">密钥凭证 (格式: <span class="mono">sk-or-v1...xyz</span> 或 <span class="mono">sk-or-v1...xyz:权重</span>):</label>
-        <input type="text" id="newApiKey" placeholder="在此植入新的密钥凭证，例如: sk-or-v1abc...xyz 或 sk-or-v1abc...xyz:5">
-        <button onclick="addKey(event)" id="addKeyButton">授权接入</button>
+        <label for="newApiKeys">密钥凭证 (单个或批量，以换行或逗号分隔):</label>
+        <textarea id="newApiKeys" rows="5" placeholder="在此植入新的密钥凭证。例如:&#10;sk-or-v1abc...xyz&#10;sk-or-v1def...uvw:5&#10;sk-or-v1ghi...rst, sk-or-v1jkl...mno:10"></textarea>
+        <button onclick="addKeys(event)" id="addKeysButton">授权接入</button>
         <div id="action-status-message" class="message" style="display:none;"></div>
     </div>
 
@@ -306,19 +120,11 @@
         <table id="apiKeyStatusTable">
             <thead>
             <tr>
-                <th>密钥标识</th>
-                <th>激活态</th>
-                <th>失联计数</th>
-                <th>上次失联</th>
-                <th>冷却至</th>
-                <th>上次调用</th>
-                <th>权重参数</th>
-                <th>节点操作</th>
+                <th>密钥标识</th> <th>激活态</th> <th>失联计数</th> <th>上次失联</th>
+                <th>冷却至</th> <th>上次调用</th> <th>权重参数</th> <th>节点操作</th>
             </tr>
             </thead>
-            <tbody>
-            <!-- 初始加载状态或空状态由JS控制 -->
-            </tbody>
+            <tbody></tbody>
         </table>
     </div>
 </div>
@@ -329,62 +135,52 @@
 <script>
     const lastJsRefreshSpan = document.getElementById('last-js-refresh-time');
     const apiKeyStatusTableBody = document.getElementById('apiKeyStatusTable').querySelector('tbody');
-    const actionStatusMessageDiv = document.getElementById('action-status-message'); // 通用消息区域
-    const newApiKeyInput = document.getElementById('newApiKey');
-    const addKeyButton = document.getElementById('addKeyButton');
+    const actionStatusMessageDiv = document.getElementById('action-status-message');
+    const newApiKeysTextarea = document.getElementById('newApiKeys');
+    const addKeysButton = document.getElementById('addKeysButton');
 
     function updateLastJsRefreshTime() {
         lastJsRefreshSpan.textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
     }
 
     function formatDate(dateString) {
-        if (!dateString || dateString.startsWith("0001-01-01")) {
-            return 'N/A';
-        }
+        if (!dateString || dateString.startsWith("0001-01-01")) return 'N/A';
         const date = new Date(dateString);
         return isNaN(date.getTime()) ? 'N/A (无效)' : date.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).replace(/\//g, '-');
     }
 
-    function showMessage(message, type = 'info') { // type can be 'success', 'error', 'info'
-        actionStatusMessageDiv.textContent = message;
+    function showMessage(message, type = 'info') {
+        actionStatusMessageDiv.innerHTML = message;
         actionStatusMessageDiv.className = 'message ' + type;
         actionStatusMessageDiv.style.display = 'block';
-        // Optional: auto-hide message after some time
-        // setTimeout(() => { actionStatusMessageDiv.style.display = 'none'; }, 5000);
     }
 
     async function fetchData(url, options = {}) {
         try {
             const response = await fetch(url, options);
-            if (response.status === 401) { // 未授权或会话过期
+            if (response.status === 401) {
                 showMessage('会话已过期或未授权，请重新登录。', 'error');
-                // 延迟跳转，给用户时间看消息
                 setTimeout(() => { window.location.href = '/admin/login?reason=session_expired'; }, 2000);
-                throw new Error('会话已过期或未授权。'); // 抛出错误以停止后续处理
+                throw new Error('会话已过期或未授权。');
             }
-            if (!response.ok) { // 其他HTTP错误
+            if (!response.ok) {
                 let errorMsg = `请求失败! 服务器状态: ${response.status}`;
                 try {
-                    const errorData = await response.json(); // 尝试解析错误体
+                    const errorData = await response.json();
                     errorMsg = errorData.error?.message || errorData.message || errorMsg;
-                } catch (e) { /* 忽略解析JSON的错误，使用默认错误信息 */ }
+                } catch (e) {}
                 throw new Error(errorMsg);
             }
-            // 如果响应状态码是 204 No Content (通常用于DELETE成功但无返回体)，则直接返回一个表示成功的对象。
-            if (response.status === 204) {
-                return { success: true, message: "操作成功完成 (无内容返回)。" };
-            }
-            return response.json(); // 对于其他成功响应 (如200 OK, 201 Created)，解析JSON
-        } catch (error) { // 网络错误或上面抛出的错误
+            if (response.status === 204) return { success: true, message: "操作成功完成。" };
+            return response.json();
+        } catch (error) {
             console.error(`FetchData error for URL ${url}:`, error);
-            // 避免覆盖由401处理程序设置的特定消息
             if (!actionStatusMessageDiv.textContent.includes('会话已过期')) {
                 showMessage(error.message || '网络请求失败或服务器无响应。', 'error');
             }
-            throw error; // 重新抛出错误，以便调用者可以捕获
+            throw error;
         }
     }
-
 
     function showLoadingState() {
         apiKeyStatusTableBody.innerHTML = '<tr><td colspan="8">正在从星际网络同步密钥数据...</td></tr>';
@@ -400,22 +196,19 @@
         try {
             const keys = await fetchData('/admin/key-status');
             hideLoadingState();
-            apiKeyStatusTableBody.innerHTML = ''; // 清空现有行
+            apiKeyStatusTableBody.innerHTML = '';
             if (!keys || keys.length === 0) {
-                apiKeyStatusTableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;">当前无已配置的密钥节点，或数据同步失败。</td></tr>';
+                apiKeyStatusTableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;">当前无已配置的密钥节点。</td></tr>';
                 return;
             }
             keys.forEach(key => {
                 const row = apiKeyStatusTableBody.insertRow();
                 row.style.opacity = 0;
-
                 row.insertCell().innerHTML = `<span class="mono" title="完整密钥后缀">${key.key_suffix}</span>`;
-
                 const activeCell = row.insertCell();
                 let statusText = key.is_active ? '已激活' : '未激活';
                 let statusClass = key.is_active ? 'status-active' : 'status-inactive';
                 let titleText = `当前状态: ${statusText}`;
-
                 if (!key.is_active && key.cool_down_until && new Date(key.cool_down_until) > new Date()) {
                     statusText = '冷却中';
                     statusClass = 'status-cooldown';
@@ -424,14 +217,11 @@
                 activeCell.textContent = statusText;
                 activeCell.className = statusClass;
                 activeCell.title = titleText;
-
-
                 row.insertCell().textContent = key.failure_count;
                 row.insertCell().textContent = formatDate(key.last_failure_time);
                 row.insertCell().textContent = formatDate(key.cool_down_until);
                 row.insertCell().textContent = formatDate(key.last_used_time);
                 row.insertCell().textContent = key.weight;
-
                 const actionsCell = row.insertCell();
                 const deleteButton = document.createElement('button');
                 deleteButton.textContent = '移除';
@@ -439,85 +229,86 @@
                 deleteButton.title = `从系统中永久移除此密钥节点 (${key.key_suffix})`;
                 deleteButton.onclick = () => deleteKey(key.key_suffix, deleteButton);
                 actionsCell.appendChild(deleteButton);
-
-                requestAnimationFrame(() => { // 简单的淡入动画
+                requestAnimationFrame(() => {
                     row.style.transition = 'opacity 0.5s ease';
                     row.style.opacity = 1;
                 });
             });
             updateLastJsRefreshTime();
         } catch (error) {
-            // fetchData 内部已经显示了错误消息，这里只处理表格的加载状态
             hideLoadingState();
-            if (!error.message.includes('会话已过期')) { // 避免重复显示错误
+            if (!error.message.includes('会话已过期')) {
                 apiKeyStatusTableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;" class="error">密钥矩阵同步失败: ${error.message}</td></tr>`;
             }
         }
     }
 
-    async function addKey(event) {
-        const keyStr = newApiKeyInput.value.trim();
-        actionStatusMessageDiv.style.display = 'none'; // 清除旧消息
-
-        if (!keyStr) {
+    async function addKeys(event) {
+        const keyData = newApiKeysTextarea.value.trim();
+        actionStatusMessageDiv.style.display = 'none';
+        if (!keyData) {
             showMessage('密钥凭证不能为空。', 'error');
             return;
         }
-
-        const button = event.target.closest('button') || addKeyButton;
-        button.disabled = true; // 禁用按钮防止重复提交
+        const button = event.target.closest('button') || addKeysButton;
+        button.disabled = true;
 
         try {
-            const result = await fetchData('/admin/add-key', {
+            const result = await fetchData('/admin/add-keys', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ openrouter_api_key: keyStr })
+                body: JSON.stringify({ key_data: keyData })
             });
-            showMessage(result.message || '新密钥节点已成功接入!', 'success');
-            newApiKeyInput.value = ''; // 清空输入框
-            await fetchApiKeyStatus(); // 刷新列表
+
+            let messageParts = [];
+            let messageType = 'success';
+            if (result.added_count > 0) messageParts.push(`成功添加 ${result.added_count} 个新密钥。`);
+            if (result.duplicate_count > 0) messageParts.push(`${result.duplicate_count} 个密钥因重复被跳过。`);
+            if (result.invalid_count > 0) {
+                messageParts.push(`${result.invalid_count} 个条目格式无效。`);
+                messageType = 'info';
+            }
+            if (result.added_count === 0 && (result.duplicate_count > 0 || result.invalid_count > 0)) messageType = 'info';
+            if (result.added_count === 0 && result.duplicate_count === 0 && result.invalid_count > 0) messageType = 'error';
+            let finalMessage = "操作完成。";
+            if (messageParts.length > 0) finalMessage = messageParts.join('<br>');
+            showMessage(finalMessage, messageType);
+            if (result.added_count > 0) newApiKeysTextarea.value = '';
+            await fetchApiKeyStatus();
         } catch (error) {
-            // fetchData 内部已处理通用错误显示，这里无需额外操作，除非需要特定逻辑
             console.error('添加密钥操作捕获错误:', error);
         } finally {
-            button.disabled = false; // 重新启用按钮
+            button.disabled = false;
         }
     }
 
     async function deleteKey(keySuffix, buttonElement) {
-        if (!confirm(`确认从矩阵中移除后缀为 "${keySuffix}" 的密钥节点？此操作不可逆！`)) {
-            return;
-        }
-        actionStatusMessageDiv.style.display = 'none'; // 清除旧消息
-        if (buttonElement) buttonElement.disabled = true; // 禁用删除按钮
-
+        if (!confirm(`确认从矩阵中移除后缀为 "${keySuffix}" 的密钥节点？此操作不可逆！`)) return;
+        actionStatusMessageDiv.style.display = 'none';
+        if (buttonElement) buttonElement.disabled = true;
         try {
-            const result = await fetchData(`/admin/delete-key/${encodeURIComponent(keySuffix)}`, {
-                method: 'DELETE',
-            });
+            const result = await fetchData(`/admin/delete-key/${encodeURIComponent(keySuffix)}`, { method: 'DELETE' });
             showMessage(result.message || `密钥节点 (后缀: ${keySuffix}) 已成功移除。`, 'success');
-            await fetchApiKeyStatus(); // 刷新列表
+            await fetchApiKeyStatus();
         } catch (error) {
             console.error('删除密钥操作捕获错误:', error);
         } finally {
-            if (buttonElement) buttonElement.disabled = false; // 重新启用按钮 (如果操作失败)
+            if (buttonElement) buttonElement.disabled = false;
         }
     }
 
     async function logout() {
         try {
-            // 禁用登出按钮 (如果可以获取到它)
             const logoutButton = document.querySelector('.logout-btn');
             if (logoutButton) logoutButton.disabled = true;
-
             const response = await fetch('/admin/logout', { method: 'POST' });
             if (response.ok) {
-                showMessage('正在安全登出...', 'info'); // 给用户一个反馈
+                showMessage('正在安全登出...', 'info');
                 window.location.href = '/admin/login?reason=logged_out';
             } else {
-                const errorData = await response.json().catch(() => ({})); // 尝试解析错误，失败则为空对象
-                showMessage(errorData.error?.message || '安全登出指令执行失败，请稍后再试。', 'error');
-                if (logoutButton) logoutButton.disabled = false; // 登出失败，重新启用按钮
+                const errorData = await response.json().catch(() => ({}));
+                showMessage(errorData.error?.message || '安全登出指令执行失败。', 'error');
+                if (logoutButton) logoutButton.disabled = false;
             }
         } catch (error) {
             console.error('退出登录请求错误:', error);
@@ -528,25 +319,13 @@
     }
 
     let apiKeyStatusInterval;
-
     document.addEventListener('DOMContentLoaded', () => {
-        fetchApiKeyStatus(); // 页面加载时首次获取状态
-        apiKeyStatusInterval = setInterval(fetchApiKeyStatus, 30000); // 每30秒自动刷新
-        // 按下 Enter 键时触发添加密钥
-        newApiKeyInput.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                event.preventDefault(); // 阻止表单默认提交（如果它是表单的一部分）
-                addKeyButton.click(); // 触发添加按钮的点击事件
-            }
-        });
+        fetchApiKeyStatus();
+        apiKeyStatusInterval = setInterval(fetchApiKeyStatus, 30000);
     });
-
-    // 可选：当窗口重新获得焦点时，也刷新一次数据，因为用户可能切换了标签页
     window.addEventListener('focus', () => {
-        console.log("窗口获得焦点，刷新密钥状态...");
         fetchApiKeyStatus();
     });
-
 </script>
 </body>
 </html>
