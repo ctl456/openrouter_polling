@@ -12,7 +12,7 @@
 *   💨 **流式响应支持**：完全支持 `/v1/chat/completions` 端点的流式响应 (`stream: true`)，提供与原生 API 一致的体验。
 *   🛡️ **安全管理**：
     *   可选的服务 API 密钥 (`APP_API_KEY`) 用于保护代理服务自身的 `/v1` 接口。
-    *   基于会话的安全管理仪表盘，通过管理员密码 (`ADMIN_PASSWORD`) 和会话密钥 (`SESSION_SECRET_KEY`) 进行保护。
+    *   基于会话的安全管理仪表盘，通过管理员密码 (`ADMIN_PASSWORD`) 进行保护。
 *   🖥️ **Web 管理仪表盘**：
     *   **安全登录**：提供独立的登录页面进行身份验证。
     *   **密钥状态监控**：实时查看所有 OpenRouter 密钥的当前状态（激活、冷却中、失败次数、上次使用时间等）。
@@ -80,7 +80,6 @@ docker run -d \
   --name my-openrouter-polling \
   -e OPENROUTER_API_KEYS="sk-or-v1key1...,sk-or-v1key2...:5" \
   -e ADMIN_PASSWORD="your_strong_admin_password" \
-  -e SESSION_SECRET_KEY="your_super_secret_random_string" \
   -e APP_API_KEY="sk-xxxx" \
   -e GIN_MODE="release" \
   -e LOG_LEVEL="info" \
@@ -102,7 +101,6 @@ docker run -d \
 | :-------------------------- | :------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------- |
 | `OPENROUTER_API_KEYS`     | **必需**。OpenRouter API 密钥列表，逗号分隔。格式：`key1,key2:weight,key3`。权重为可选整数，默认为1。 | 无默认值                                                         |
 | `ADMIN_PASSWORD`          | **必需**。管理仪表盘的登录密码。                                                                         | `"admin"` (强烈建议修改!)                                        |
-| `SESSION_SECRET_KEY`      | **必需**。用于会话 Cookie 签名和加密的密钥。必须是一个长且随机的字符串，以保证会话安全。                      | `"a-very-secret-and-random-key-replace-this-in-production"` (必须修改!) |
 | `APP_API_KEY`             | 可选。如果设置，则所有对 `/v1/*` 接口的请求都需要在 `Authorization` 头部提供 `Bearer <APP_API_KEY>`。       | 空 (不启用保护)                                                  |
 | `PORT`                      | 服务监听的端口号 (在容器内部)。对于 Docker，通常固定为 `8000`，通过端口映射暴露。                             | `"8000"`                                                         |
 | `LOG_LEVEL`                 | 日志级别：`trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic`。                                | `"info"`                                                         |
@@ -165,7 +163,6 @@ docker run -d \
 
 *   🔒 **强烈建议修改默认密码和密钥**：
     *   **`ADMIN_PASSWORD`**: 默认的 `"admin"` 密码极不安全，请务必在首次部署时修改为一个强密码。
-    *   **`SESSION_SECRET_KEY`**: 默认的会话密钥仅用于演示，生产环境必须替换为一个长且随机的字符串，以保证会话Cookie的安全性。
 *   🛡️ **保护代理接口**: 如果你的服务将暴露在公网上，强烈建议配置 `APP_API_KEY`，并要求所有调用 `/v1/*` 接口的客户端在 `Authorization` 头部提供此密钥 (格式: `Bearer <APP_API_KEY>`)。
 *   🌐 **HTTPS**: 在生产环境中，强烈建议将此服务部署在 HTTPS 反向代理（如 Nginx, Caddy, Traefik）之后。如果直接暴露服务并使用 HTTPS，请确保在 `main.go` 中正确配置会话 Cookie 的 `Secure` 标志为 `true` (对于Docker部署，如果反向代理处理SSL终止，则可能不需要在应用层面设置Secure)。
 *   🔑 **API 密钥安全**:

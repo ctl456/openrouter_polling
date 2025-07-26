@@ -5,6 +5,9 @@
 # 选择一个与你本地开发环境匹配或兼容的 Go 版本
 FROM golang:1.23-alpine3.21 AS builder
 
+# 安装 SQLite 开发依赖
+RUN apk add --no-cache gcc musl-dev
+
 # 设置工作目录
 WORKDIR /app
 
@@ -25,7 +28,7 @@ COPY . .
 # -ldflags="-w -s" 用于减小二进制文件体积（移除调试信息和符号表）
 # CGO_ENABLED=0 确保静态链接，避免依赖外部 C 库（对于 Alpine 尤其重要）
 # GOOS=linux GOARCH=amd64 指定目标操作系统和架构（如果你的构建环境不同于目标环境）
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /app/openrouter-proxy .
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /app/openrouter-polling .
 
 # ---- Release Stage ----
 # 使用一个轻量级的基础镜像（如 Alpine Linux）来运行应用
@@ -35,7 +38,7 @@ FROM alpine:latest
 WORKDIR /app
 
 # 从构建阶段复制编译好的二进制文件
-COPY --from=builder /app/openrouter-proxy /app/openrouter-proxy
+COPY --from=builder /app/openrouter-polling /app/openrouter-polling
 
 # 【重要】复制 static 目录下的 HTML 文件到镜像中
 # 确保你的 HTML 模板 (dashboard.html, login.html) 在这个路径下
@@ -51,6 +54,6 @@ COPY static ./static
 EXPOSE 8000
 
 # 设置容器启动时执行的命令
-# CMD ["/app/openrouter-proxy"]
+# CMD ["/app/openrouter-polling"]
 # 或者，如果你希望能够更容易地传递命令行参数（虽然此应用目前不使用）
-ENTRYPOINT ["/app/openrouter-proxy"]
+ENTRYPOINT ["/app/openrouter-polling"]

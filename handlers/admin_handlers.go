@@ -6,6 +6,7 @@ import (
 	"openrouter_polling/apimanager"
 	"openrouter_polling/config"
 	"openrouter_polling/models"
+	"strconv"
 
 	"os"
 	"runtime"
@@ -20,15 +21,20 @@ import (
 var Store *sessions.CookieStore
 
 const (
-	SessionKey    = "admin-session"
-	IsLoggedInKey = "is_logged_in"
-	UserIDKey     = "user_id"
-	MaxAgeSeconds = 3600 * 24 * 7
-	SessionPath   = "/admin"
+	SessionKey           = "admin-session"
+	IsLoggedInKey        = "is_logged_in"
+	UserIDKey            = "user_id"
+	SessionMaxAgeSeconds = 60 * 5 // 延长会话时间到5分钟
+	SessionPath          = "/admin"
 )
 
 type LoginRequest struct {
 	Password string `json:"password" binding:"required"`
+}
+
+// 【新增】批量删除密钥的请求体
+type BatchDeleteRequest struct {
+	Suffixes []string `json:"suffixes" binding:"required"`
 }
 
 func LoginHandler(c *gin.Context) {
@@ -51,7 +57,7 @@ func LoginHandler(c *gin.Context) {
 	if req.Password == configuredPassword {
 		session, _ := Store.Get(c.Request, SessionKey)
 		session.Values[IsLoggedInKey] = true
-		session.Options.MaxAge = MaxAgeSeconds
+		session.Options.MaxAge = SessionMaxAgeSeconds
 		session.Options.HttpOnly = true
 		session.Options.Path = SessionPath
 		session.Options.SameSite = http.SameSiteLaxMode
@@ -88,6 +94,13 @@ func LogoutHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "登出成功"})
 }
 
+// SessionHeartbeatHandler handles the session refresh request from the dashboard.
+func SessionHeartbeatHandler(c *gin.Context) {
+	// The AuthMiddleware already handles session validation and refreshing.
+	// If the request reaches here, the session is valid and has been refreshed.
+	c.JSON(http.StatusOK, gin.H{"status": "session_refreshed"})
+}
+
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session, err := Store.Get(c.Request, SessionKey)
@@ -115,6 +128,15 @@ func AuthMiddleware() gin.HandlerFunc {
 			}
 			return
 		}
+
+		// Refresh the session on each authenticated request.
+		session.Options.MaxAge = SessionMaxAgeSeconds // Reset the expiration time
+		if err := session.Save(c.Request, c.Writer); err != nil {
+			// If saving fails, it's a server error, but we might not want to kill the request.
+			// Log it and continue, as the user is already authenticated for this request.
+			Log.Errorf("AuthMiddleware: 刷新 session 失败: %v", err)
+		}
+
 		Log.Debugf("AuthMiddleware: 用户已认证。继续访问路径: %s", c.Request.URL.Path)
 		c.Next()
 	}
@@ -179,11 +201,69 @@ func DeleteOpenRouterKeyHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "后缀为 '" + keySuffix + "' 的密钥已成功删除。"})
 }
 
-// GetKeyStatusesHandler 处理 `/admin/key-status` GET 请求。
+// DeleteKeysBatchHandler 【新增】处理批量删除密钥的请求
+func DeleteKeysBatchHandler(c *gin.Context) {
+	var req BatchDeleteRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		Log.Warnf("DeleteKeysBatchHandler: 无效的批量删除请求体: %v", err)
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: models.ErrorDetail{
+			Message: "请求数据无效: " + err.Error(), Type: "invalid_request_error"}})
+		return
+	}
+
+	if len(req.Suffixes) == 0 {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Error: models.ErrorDetail{
+			Message: "要删除的密钥后缀列表不能为空。", Type: "invalid_request_error"}})
+		return
+	}
+
+	Log.Infof("DeleteKeysBatchHandler: 收到批量删除 %d 个密钥的请求。", len(req.Suffixes))
+
+	deletedCount, err := ApiKeyMgr.DeleteKeysBySuffixBatch(req.Suffixes)
+	if err != nil {
+		Log.Errorf("DeleteKeysBatchHandler: 批量删除密钥失败: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: models.ErrorDetail{
+			Message: "批量删除密钥时发生内部服务器错误。", Type: "internal_server_error"}})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "批量删除操作完成。",
+		"deleted_count": deletedCount,
+		"requested_count": len(req.Suffixes),
+	})
+}
+
+
+// GetKeyStatusesHandler 【修改】处理 `/admin/key-status` GET 请求，支持分页
 func GetKeyStatusesHandler(c *gin.Context) {
-	Log.Debug("GetKeyStatusesHandler: 收到获取密钥状态请求。")
-	statuses := ApiKeyMgr.GetAllKeyStatusesSafe()
-	c.JSON(http.StatusOK, statuses)
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "10")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		limit = 10
+	}
+	if limit > 100 { // 防止一次请求过多数据
+		limit = 100
+	}
+
+	Log.Debugf("GetKeyStatusesHandler: 收到获取密钥状态请求 (Page: %d, Limit: %d)。", page, limit)
+	
+	paginatedResult, err := ApiKeyMgr.GetAllKeyStatusesSafePaginated(page, limit)
+	if err != nil {
+		Log.Errorf("GetKeyStatusesHandler: 获取分页密钥状态失败: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: models.ErrorDetail{
+			Message: "获取密钥状态时发生内部错误。", Type: "internal_server_error"}})
+		return
+	}
+
+	c.JSON(http.StatusOK, paginatedResult)
 }
 
 // AppStatusHandler 处理 `/admin/app-status` GET 请求。
@@ -222,8 +302,7 @@ func AppStatusHandler(c *gin.Context) {
 		RetryWithNewKeyCount:       config.AppSettings.RetryWithNewKeyCount,
 		HealthCheckIntervalSeconds: config.AppSettings.HealthCheckInterval.Seconds(),
 		Port:                       config.AppSettings.Port,
-		AdminAPIKeyConfigured:      config.AppSettings.AdminAPIKey != "",
-		AdminPasswordConfigured: config.AppSettings.AdminPassword != "" && config.AppSettings.AdminPassword != config.DefaultAdminPassword,
+		AdminPasswordConfigured:    config.AppSettings.AdminPassword != "" && config.AppSettings.AdminPassword != config.DefaultAdminPassword,
 		LogLevel:                   config.AppSettings.LogLevel,
 		GinMode:                    config.AppSettings.GinMode,
 	}
@@ -231,6 +310,7 @@ func AppStatusHandler(c *gin.Context) {
 }
 
 // ReloadOpenRouterKeysHandler 处理 `/admin/reload-keys` POST 请求。
+// 这是一个破坏性操作，会删除所有现有密钥并从提供的字符串中重新加载。
 func ReloadOpenRouterKeysHandler(c *gin.Context) {
 	var req models.ReloadKeysRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -240,7 +320,20 @@ func ReloadOpenRouterKeysHandler(c *gin.Context) {
 		return
 	}
 
-	Log.Info("ReloadOpenRouterKeysHandler: 收到管理员请求，使用提供的字符串批量重新加载 OpenRouter API 密钥。")
-	ApiKeyMgr.LoadKeys(req.OpenRouterAPIKeysStr)
-	c.JSON(http.StatusOK, gin.H{"message": "OpenRouter API 密钥已从提供的字符串重新加载。"})
+	Log.Warn("ReloadOpenRouterKeysHandler: 收到管理员请求，将从提供的字符串中进行破坏性重新加载。")
+
+	result, err := ApiKeyMgr.ReloadKeysFromString(req.OpenRouterAPIKeysStr)
+	if err != nil {
+		Log.Errorf("ReloadOpenRouterKeysHandler: 重新加载密钥失败: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Error: models.ErrorDetail{
+			Message: "重新加载密钥时发生内部服务器错误。", Type: "internal_server_error"}})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":         "密钥已成功重新加载。",
+		"added_count":     result.AddedCount,
+		"invalid_count":   result.InvalidCount,
+		"error_messages":  result.ErrorMessages,
+	})
 }

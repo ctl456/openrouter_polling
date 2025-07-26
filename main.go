@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"os"
@@ -16,6 +18,7 @@ import (
 	"openrouter_polling/handlers"
 	"openrouter_polling/healthcheck"
 	"openrouter_polling/middleware"
+	"openrouter_polling/storage"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
@@ -40,7 +43,7 @@ func main() {
 	log.SetLevel(logrus.InfoLevel)
 
 	// 2. 加载应用程序配置
-	config.Init()
+	config.Init(log)
 	if level, err := logrus.ParseLevel(config.AppSettings.LogLevel); err == nil {
 		log.SetLevel(level)
 	} else {
@@ -54,20 +57,25 @@ func main() {
 		log.Warnf("安全警告: 管理员密码 (ADMIN_PASSWORD) 当前为默认值 '%s'。强烈建议修改为一个强密码以保证安全!", config.DefaultAdminPassword)
 	}
 
-	if config.AppSettings.SessionSecretKey == config.DefaultSessionSecretKey || config.AppSettings.SessionSecretKey == "" {
-		log.Warnf("安全警告: Session 密钥 (SESSION_SECRET_KEY) 为默认值或未设置，这非常不安全! 请在生产环境中设置一个长且随机的密钥。")
-		if config.AppSettings.SessionSecretKey == "" {
-			config.AppSettings.SessionSecretKey = config.DefaultSessionSecretKey
-			log.Error("Session 密钥为空，已临时设置为默认值。这极不安全，请立即配置 SESSION_SECRET_KEY。")
-		}
+	// 3. 初始化数据库
+	db, err := storage.InitDB(log)
+	if err != nil {
+		log.Fatalf("数据库初始化失败: %v", err)
 	}
+	log.Info("数据库初始化成功。")
 
-	// 3. 初始化 Session Store
-	var sessionKeyBytes = []byte(config.AppSettings.SessionSecretKey)
-	handlers.Store = sessions.NewCookieStore(sessionKeyBytes)
+	// 4. 初始化 Session Store
+	sessionKey := make([]byte, 64)
+	_, err = rand.Read(sessionKey)
+	if err != nil {
+		log.Fatalf("无法生成安全的 session 密钥: %v", err)
+	}
+	log.Infof("已生成临时的 session 密钥: %s", hex.EncodeToString(sessionKey))
+
+	handlers.Store = sessions.NewCookieStore(sessionKey)
 	handlers.Store.Options = &sessions.Options{
 		Path:     handlers.SessionPath,
-		MaxAge:   handlers.MaxAgeSeconds,
+		MaxAge:   handlers.SessionMaxAgeSeconds,
 		HttpOnly: true,
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
@@ -77,13 +85,15 @@ func main() {
 		log.Warn("Session cookie 的 Secure 标志当前为 false。如果您的服务部署在 HTTPS 环境下，请务必在生产中将其配置为 true 以增强安全性。")
 	}
 
-	// 4. 初始化全局组件
+	// 5. 初始化全局组件
+	storage.Log = log
 	apimanager.Log = log
 	middleware.Log = log
 	handlers.Log = log
 	healthcheck.Log = log
 
-	apiKeyMgr = apimanager.NewApiKeyManager(log)
+	keyStore := storage.NewKeyStore(db)
+	apiKeyMgr = apimanager.NewApiKeyManager(log, keyStore)
 	handlers.ApiKeyMgr = apiKeyMgr
 	healthcheck.ApiKeyMgr = apiKeyMgr
 
@@ -98,20 +108,21 @@ func main() {
 	handlers.HttpClient = httpClient
 	handlers.AppStartTime = appStartTime
 
-	// 5. 应用启动逻辑
+	// 6. 应用启动逻辑：植入和加载密钥
 	log.Info("应用程序核心服务启动中...")
-	if config.AppSettings.OpenRouterAPIKeys == "" {
-		log.Error("严重配置错误: OPENROUTER_API_KEYS 环境变量未设置或为空。服务可能无法正常代理请求。")
-	} else {
-		apiKeyMgr.LoadKeys(config.AppSettings.OpenRouterAPIKeys)
+	if err := apiKeyMgr.SeedKeysFromConfig(config.AppSettings.OpenRouterAPIKeys); err != nil {
+		log.Fatalf("从环境变量植入密钥失败: %v", err)
+	}
+	if err := apiKeyMgr.LoadKeysFromDB(); err != nil {
+		log.Fatalf("从数据库加载密钥失败: %v", err)
 	}
 
-	// 6. 启动后台任务
+	// 7. 启动后台任务
 	healthCheckCtx, healthCheckCancelFunc := context.WithCancel(context.Background())
 	go healthcheck.PerformPeriodicHealthChecks(healthCheckCtx)
 	log.Info("API 密钥管理器已初始化，定期健康检查任务已启动。")
 
-	// 7. 设置 Gin 路由器
+	// 8. 设置 Gin 路由器
 	if strings.ToLower(config.AppSettings.GinMode) == "release" {
 		gin.SetMode(gin.ReleaseMode)
 		log.Info("Gin 运行模式: release")
@@ -153,7 +164,7 @@ func main() {
 		v1Group.POST("/chat/completions", handlers.ChatCompletionsHandler)
 	}
 
-	// --- 管理员路由 (/admin) 【修改】 ---
+	// --- 管理员路由 (/admin) ---
 	adminGroup := router.Group("/admin")
 	{
 		adminGroup.GET("/login", handlers.LoginPageHandler)
@@ -165,13 +176,16 @@ func main() {
 			authorizedAdminGroup.GET("/dashboard", handlers.DashboardHandler)
 			authorizedAdminGroup.POST("/logout", handlers.LogoutHandler)
 			authorizedAdminGroup.GET("/key-status", handlers.GetKeyStatusesHandler)
-
-			// 【修改】更新路由和处理器
-			authorizedAdminGroup.POST("/add-keys", handlers.AddKeysHandler) // 使用新的端点和处理器
-
+			authorizedAdminGroup.POST("/session/heartbeat", handlers.SessionHeartbeatHandler)
+			authorizedAdminGroup.POST("/add-keys", handlers.AddKeysHandler)
 			authorizedAdminGroup.DELETE("/delete-key/:suffix", handlers.DeleteOpenRouterKeyHandler)
+			authorizedAdminGroup.POST("/delete-keys-batch", handlers.DeleteKeysBatchHandler) // 【新增】批量删除路由
 			authorizedAdminGroup.POST("/reload-keys", handlers.ReloadOpenRouterKeysHandler)
 			authorizedAdminGroup.GET("/app-status", handlers.AppStatusHandler)
+			// 【新增】设置页面路由
+			authorizedAdminGroup.GET("/settings-page", handlers.SettingsPageHandler)
+			authorizedAdminGroup.GET("/settings", handlers.GetSettingsHandler)
+			authorizedAdminGroup.POST("/settings", handlers.UpdateSettingsHandler)
 		}
 	}
 	log.Info("所有应用路由已设置完成。")
@@ -181,7 +195,7 @@ func main() {
 		c.Redirect(http.StatusMovedPermanently, "/admin/login")
 	})
 
-	// 8. 启动 HTTP 服务器
+	// 9. 启动 HTTP 服务器
 	serverAddr := ":" + config.AppSettings.Port
 	log.Infof("服务即将启动，监听地址: http://localhost%s (或配置的域名/IP)", serverAddr)
 	srv := &http.Server{
@@ -199,7 +213,7 @@ func main() {
 	}()
 	log.Infof("服务器正在运行中... 按 CTRL+C 关闭。")
 
-	// 9. 实现优雅关闭
+	// 10. 实现优雅关闭
 	quitChannel := make(chan os.Signal, 1)
 	signal.Notify(quitChannel, syscall.SIGINT, syscall.SIGTERM)
 	<-quitChannel

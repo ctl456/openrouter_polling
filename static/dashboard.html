@@ -7,31 +7,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #00ffff;
-            --secondary-color: #f0f8ff;
-            --background-color: #0a0f1f;
-            --container-bg: rgba(10, 25, 47, 0.85);
-            --section-bg: rgba(15, 30, 57, 0.7);
-            --border-color: rgba(0, 255, 255, 0.3);
-            --glow-color: rgba(0, 255, 255, 0.5);
-            --input-bg: rgba(255, 255, 255, 0.05);
-            --input-border-color: rgba(0, 255, 255, 0.2);
-            --table-border-color: rgba(0, 255, 255, 0.2);
-            --table-header-bg: rgba(0, 191, 255, 0.15);
-            --table-row-hover-bg: rgba(0, 191, 255, 0.1);
-            --status-active-color: #4dff4d;
-            --status-inactive-color: #ff4d4d;
-            --status-cooldown-color: #ffd700;
-            --button-primary-bg-start: var(--primary-color);
-            --button-primary-bg-end: #007bff;
-            --button-primary-hover-bg-start: #00d4ff;
-            --button-primary-hover-bg-end: var(--primary-color);
-            --button-primary-shadow: rgba(0, 191, 255, 0.4);
-            --button-primary-hover-shadow: var(--primary-color);
-            --button-danger-bg: #e60073;
-            --button-danger-hover-bg: #ff0084;
-            --button-danger-glow: rgba(230, 0, 115, 0.6);
-            --font-primary: 'Orbitron', sans-serif;
+            --primary-color: #00ffff; --secondary-color: #f0f8ff; --background-color: #0a0f1f;
+            --container-bg: rgba(10, 25, 47, 0.85); --section-bg: rgba(15, 30, 57, 0.7);
+            --border-color: rgba(0, 255, 255, 0.3); --glow-color: rgba(0, 255, 255, 0.5);
+            --input-bg: rgba(255, 255, 255, 0.05); --input-border-color: rgba(0, 255, 255, 0.2);
+            --table-border-color: rgba(0, 255, 255, 0.2); --table-header-bg: rgba(0, 191, 255, 0.15);
+            --table-row-hover-bg: rgba(0, 191, 255, 0.1); --status-active-color: #4dff4d;
+            --status-inactive-color: #ff4d4d; --status-cooldown-color: #ffd700;
+            --button-primary-bg-start: var(--primary-color); --button-primary-bg-end: #007bff;
+            --button-primary-hover-bg-start: #00d4ff; --button-primary-hover-bg-end: var(--primary-color);
+            --button-primary-shadow: rgba(0, 191, 255, 0.4); --button-primary-hover-shadow: var(--primary-color);
+            --button-danger-bg: #e60073; --button-danger-hover-bg: #ff0084;
+            --button-danger-glow: rgba(230, 0, 115, 0.6); --font-primary: 'Orbitron', sans-serif;
             --font-secondary: 'Roboto', sans-serif;
         }
         body {
@@ -54,7 +41,7 @@
             position: sticky; top: 0; z-index: 1000; backdrop-filter: blur(5px);
         }
         .header h1 { margin: 0; font-size: 2em; font-family: var(--font-primary); letter-spacing: 1px; text-shadow: 0 0 8px var(--primary-color); }
-        .container { flex: 1; max-width: 1000px; margin: 30px auto; padding: 30px; background-color: var(--container-bg); border-radius: 10px; border: 1px solid var(--border-color); box-shadow: 0 0 30px var(--glow-color), 0 0 60px var(--glow-color) inset; backdrop-filter: blur(10px); animation: fadeInContainer 1s ease-out; }
+        .container { flex: 1; max-width: 1200px; margin: 30px auto; padding: 30px; background-color: var(--container-bg); border-radius: 10px; border: 1px solid var(--border-color); box-shadow: 0 0 30px var(--glow-color), 0 0 60px var(--glow-color) inset; backdrop-filter: blur(10px); animation: fadeInContainer 1s ease-out; }
         @keyframes fadeInContainer { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         h2 { font-family: var(--font-primary); color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-top: 0; margin-bottom: 25px; font-size: 1.6em; letter-spacing: 0.5px; text-shadow: 0 0 5px var(--primary-color); display: flex; justify-content: space-between; align-items: center; }
         .section { margin-bottom: 35px; padding: 25px; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--section-bg); box-shadow: 0 0 15px rgba(0, 255, 255, 0.1) inset; transition: box-shadow 0.3s ease; }
@@ -78,7 +65,7 @@
         button:hover::before { width: 300px; height: 300px; opacity: 1; }
         button:hover { background: linear-gradient(135deg, var(--button-primary-hover-bg-start), var(--button-primary-hover-bg-end)); box-shadow: 0 0 12px var(--button-primary-hover-shadow), 0 0 20px var(--button-primary-hover-shadow); transform: translateY(-2px); }
         button:active { transform: translateY(0px) scale(0.98); box-shadow: 0 0 5px var(--button-primary-shadow); }
-        button:disabled { background: grey; color: #ccc; cursor: not-allowed; box-shadow: none; transform: none; }
+        button:disabled { background: grey; color: #ccc; cursor: not-allowed; box-shadow: none; transform: none; opacity: 0.5; }
         button:disabled::before { display: none; }
         .refresh-btn { background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); margin-left: 15px; font-size: 0.85em; padding: 8px 15px; box-shadow: 0 0 5px rgba(0, 255, 255, 0.2); }
         .refresh-btn:hover { background: var(--primary-color); color: var(--background-color); box-shadow: 0 0 10px var(--primary-color); }
@@ -96,12 +83,20 @@
         .footer #last-js-refresh-time { color: var(--primary-color); font-weight: bold; }
         #apiKeyStatusTable tbody.loading td { text-align: center; font-style: italic; color: var(--primary-color); height: 100px; animation: pulseText 1.5s infinite ease-in-out; }
         @keyframes pulseText { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+        .table-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .pagination-controls { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px; }
+        .pagination-controls button { min-width: 80px; }
+        .pagination-info { font-family: var(--font-primary); color: var(--primary-color); }
+        input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary-color); }
     </style>
 </head>
 <body>
 <div class="header">
     <h1>密钥矩阵 控制台</h1>
-    <button onclick="logout()" class="logout-btn">安全登出</button>
+    <div>
+        <button onclick="window.location.href='/admin/settings-page'" style="margin-right: 15px;">参数配置</button>
+        <button onclick="logout()" class="logout-btn">安全登出</button>
+    </div>
 </div>
 <div class="container">
     <div class="section" id="add-key-section">
@@ -115,17 +110,26 @@
     <div class="section" id="api-keys-status-section">
         <h2>
             <span>当前密钥节点状态矩阵</span>
-            <button onclick="fetchApiKeyStatus()" class="refresh-btn">刷新阵列</button>
+            <button onclick="fetchApiKeyStatus(currentPage)" class="refresh-btn">刷新阵列</button>
         </h2>
+        <div class="table-actions">
+            <button id="bulkDeleteButton" onclick="bulkDeleteKeys()" class="delete-btn" disabled>删除选中 (0)</button>
+        </div>
         <table id="apiKeyStatusTable">
             <thead>
             <tr>
+                <th><input type="checkbox" id="selectAllCheckbox" title="全选/取消全选"></th>
                 <th>密钥标识</th> <th>激活态</th> <th>失联计数</th> <th>上次失联</th>
                 <th>冷却至</th> <th>上次调用</th> <th>权重参数</th> <th>节点操作</th>
             </tr>
             </thead>
             <tbody></tbody>
         </table>
+        <div class="pagination-controls">
+            <button id="prevPageButton" disabled>上一页</button>
+            <span id="paginationInfo" class="pagination-info">第 1 / 1 页</span>
+            <button id="nextPageButton" disabled>下一页</button>
+        </div>
     </div>
 </div>
 <div class="footer">
@@ -138,6 +142,15 @@
     const actionStatusMessageDiv = document.getElementById('action-status-message');
     const newApiKeysTextarea = document.getElementById('newApiKeys');
     const addKeysButton = document.getElementById('addKeysButton');
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const bulkDeleteButton = document.getElementById('bulkDeleteButton');
+    const prevPageButton = document.getElementById('prevPageButton');
+    const nextPageButton = document.getElementById('nextPageButton');
+    const paginationInfoSpan = document.getElementById('paginationInfo');
+
+    let currentPage = 1;
+    let totalPages = 1;
+    const limit = 10;
 
     function updateLastJsRefreshTime() {
         lastJsRefreshSpan.textContent = new Date().toLocaleTimeString('zh-CN', { hour12: false });
@@ -183,7 +196,7 @@
     }
 
     function showLoadingState() {
-        apiKeyStatusTableBody.innerHTML = '<tr><td colspan="8">正在从星际网络同步密钥数据...</td></tr>';
+        apiKeyStatusTableBody.innerHTML = `<tr><td colspan="9">正在从星际网络同步密钥数据...</td></tr>`;
         apiKeyStatusTableBody.classList.add('loading');
     }
 
@@ -191,19 +204,33 @@
         apiKeyStatusTableBody.classList.remove('loading');
     }
 
-    async function fetchApiKeyStatus() {
+    async function fetchApiKeyStatus(page = 1) {
         showLoadingState();
         try {
-            const keys = await fetchData('/admin/key-status');
+            const data = await fetchData(`/admin/key-status?page=${page}&limit=${limit}`);
             hideLoadingState();
             apiKeyStatusTableBody.innerHTML = '';
-            if (!keys || keys.length === 0) {
-                apiKeyStatusTableBody.innerHTML = '<tr><td colspan="8" style="text-align:center;">当前无已配置的密钥节点。</td></tr>';
+            
+            currentPage = data.page;
+            totalPages = data.total_pages > 0 ? data.total_pages : 1;
+
+            if (!data.keys || data.keys.length === 0) {
+                apiKeyStatusTableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;">当前无已配置的密钥节点。</td></tr>`;
+                updatePaginationControls();
                 return;
             }
-            keys.forEach(key => {
+
+            data.keys.forEach(key => {
                 const row = apiKeyStatusTableBody.insertRow();
                 row.style.opacity = 0;
+                
+                const selectCell = row.insertCell();
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.classList.add('key-checkbox');
+                checkbox.dataset.keySuffix = key.key_suffix;
+                selectCell.appendChild(checkbox);
+
                 row.insertCell().innerHTML = `<span class="mono" title="完整密钥后缀">${key.key_suffix}</span>`;
                 const activeCell = row.insertCell();
                 let statusText = key.is_active ? '已激活' : '未激活';
@@ -234,13 +261,20 @@
                     row.style.opacity = 1;
                 });
             });
+            updatePaginationControls();
             updateLastJsRefreshTime();
         } catch (error) {
             hideLoadingState();
             if (!error.message.includes('会话已过期')) {
-                apiKeyStatusTableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;" class="error">密钥矩阵同步失败: ${error.message}</td></tr>`;
+                apiKeyStatusTableBody.innerHTML = `<tr><td colspan="9" style="text-align:center;" class="error">密钥矩阵同步失败: ${error.message}</td></tr>`;
             }
         }
+    }
+
+    function updatePaginationControls() {
+        paginationInfoSpan.textContent = `第 ${currentPage} / ${totalPages} 页 (共 ${document.querySelectorAll('.key-checkbox').length} 条)`;
+        prevPageButton.disabled = currentPage <= 1;
+        nextPageButton.disabled = currentPage >= totalPages;
     }
 
     async function addKeys(event) {
@@ -274,7 +308,7 @@
             if (messageParts.length > 0) finalMessage = messageParts.join('<br>');
             showMessage(finalMessage, messageType);
             if (result.added_count > 0) newApiKeysTextarea.value = '';
-            await fetchApiKeyStatus();
+            await fetchApiKeyStatus(1);
         } catch (error) {
             console.error('添加密钥操作捕获错误:', error);
         } finally {
@@ -289,7 +323,7 @@
         try {
             const result = await fetchData(`/admin/delete-key/${encodeURIComponent(keySuffix)}`, { method: 'DELETE' });
             showMessage(result.message || `密钥节点 (后缀: ${keySuffix}) 已成功移除。`, 'success');
-            await fetchApiKeyStatus();
+            await fetchApiKeyStatus(currentPage);
         } catch (error) {
             console.error('删除密钥操作捕获错误:', error);
         } finally {
@@ -297,7 +331,39 @@
         }
     }
 
+    async function bulkDeleteKeys() {
+        const selectedSuffixes = Array.from(document.querySelectorAll('.key-checkbox:checked')).map(cb => cb.dataset.keySuffix);
+        if (selectedSuffixes.length === 0) {
+            showMessage('请至少选择一个密钥进行删除。', 'info');
+            return;
+        }
+        if (!confirm(`确认要批量删除选中的 ${selectedSuffixes.length} 个密钥吗？此操作不可逆！`)) return;
+
+        bulkDeleteButton.disabled = true;
+        try {
+            const result = await fetchData('/admin/delete-keys-batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ suffixes: selectedSuffixes })
+            });
+            showMessage(`批量删除操作完成。成功删除 ${result.deleted_count} 个密钥。`, 'success');
+            await fetchApiKeyStatus(currentPage);
+        } catch (error) {
+            console.error('批量删除操作捕获错误:', error);
+        } finally {
+            bulkDeleteButton.disabled = false;
+            updateBulkDeleteButton();
+        }
+    }
+
+    function updateBulkDeleteButton() {
+        const selectedCount = document.querySelectorAll('.key-checkbox:checked').length;
+        bulkDeleteButton.textContent = `删除选中 (${selectedCount})`;
+        bulkDeleteButton.disabled = selectedCount === 0;
+    }
+
     async function logout() {
+        stopSessionHeartbeat();
         try {
             const logoutButton = document.querySelector('.logout-btn');
             if (logoutButton) logoutButton.disabled = true;
@@ -318,14 +384,63 @@
         }
     }
 
-    let apiKeyStatusInterval;
+    let sessionHeartbeatInterval;
+    function startSessionHeartbeat() {
+        console.log('Session heartbeat started.');
+        sessionHeartbeatInterval = setInterval(async () => {
+            try {
+                const response = await fetch('/admin/session/heartbeat', { method: 'POST' });
+                if (!response.ok) {
+                    console.error('Session heartbeat failed. Status:', response.status);
+                    stopSessionHeartbeat();
+                    showMessage('您的会话已过期，请重新登录。', 'error');
+                    setTimeout(() => { window.location.href = '/admin/login?reason=session_expired'; }, 2000);
+                } else {
+                    console.log('Session heartbeat successful.');
+                }
+            } catch (error) {
+                console.error('Error during session heartbeat:', error);
+            }
+        }, 4 * 60 * 1000); // 4 minutes
+    }
+    function stopSessionHeartbeat() {
+        if (sessionHeartbeatInterval) {
+            clearInterval(sessionHeartbeatInterval);
+            console.log('Session heartbeat stopped.');
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-        fetchApiKeyStatus();
-        apiKeyStatusInterval = setInterval(fetchApiKeyStatus, 30000);
+        fetchApiKeyStatus(1);
+        startSessionHeartbeat();
+
+        selectAllCheckbox.addEventListener('change', (e) => {
+            document.querySelectorAll('.key-checkbox').forEach(checkbox => {
+                checkbox.checked = e.target.checked;
+            });
+            updateBulkDeleteButton();
+        });
+
+        apiKeyStatusTableBody.addEventListener('change', (e) => {
+            if (e.target.classList.contains('key-checkbox')) {
+                updateBulkDeleteButton();
+                if (!e.target.checked) {
+                    selectAllCheckbox.checked = false;
+                }
+            }
+        });
+
+        prevPageButton.addEventListener('click', () => {
+            if (currentPage > 1) fetchApiKeyStatus(currentPage - 1);
+        });
+
+        nextPageButton.addEventListener('click', () => {
+            if (currentPage < totalPages) fetchApiKeyStatus(currentPage + 1);
+        });
     });
-    window.addEventListener('focus', () => {
-        fetchApiKeyStatus();
-    });
+
+    window.addEventListener('beforeunload', stopSessionHeartbeat);
+    window.addEventListener('focus', () => fetchApiKeyStatus(currentPage));
 </script>
 </body>
 </html>

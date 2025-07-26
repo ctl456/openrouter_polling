@@ -191,8 +191,27 @@ func ChatCompletionsHandler(c *gin.Context) {
 		requestData.Stream = &defaultValueForPayload
 	}
 
-	Log.Infof("收到聊天请求: 模型=%s, 客户端期望流式响应=%t, 用户标识=%s, 客户端IP=%s",
-		requestData.Model, isStreamForClientResponse, utils.DerefString(requestData.User, "N/A"), c.ClientIP())
+	// --- 增强日志记录 ---
+	logEntry := Log.WithFields(logrus.Fields{
+		"model":      requestData.Model,
+		"streaming":  isStreamForClientResponse,
+		"user":       utils.DerefString(requestData.User, "N/A"),
+		"client_ip":  c.ClientIP(),
+	})
+
+	if requestData.Tools != nil && len(*requestData.Tools) > 0 {
+		logEntry = logEntry.WithField("tools_provided", len(*requestData.Tools))
+	}
+	if requestData.ToolChoice != nil {
+		// 为了日志简洁，只记录 tool_choice 的存在，或其字符串值。
+		if choiceStr, ok := requestData.ToolChoice.(string); ok {
+			logEntry = logEntry.WithField("tool_choice", choiceStr)
+		} else {
+			logEntry = logEntry.WithField("tool_choice", "specified_object")
+		}
+	}
+	logEntry.Info("收到聊天请求")
+	// --- 日志记录结束 ---
 
 	// 如果是流式响应，设置相应的 HTTP 头部以支持 Server-Sent Events (SSE)。
 	if isStreamForClientResponse {
@@ -431,6 +450,25 @@ func attemptOpenRouterRequest(
 				ApiKeyMgr.RecordKeySuccess(currentOpenRouterKey)
 				return true, false, http.StatusOK, "", "" // 标记为成功获取，不需重试（因为客户端没了）。
 			}
+
+			// --- 增强日志：检查非流式响应中是否包含 tool_calls ---
+			var tempResponse struct {
+				Choices []struct {
+					Message struct {
+						ToolCalls *[]models.ToolCall `json:"tool_calls"`
+					} `json:"message"`
+				} `json:"choices"`
+			}
+			// 尝试解析，即使失败也不影响主流程
+			if err := json.Unmarshal(bodyBytes, &tempResponse); err == nil {
+				if len(tempResponse.Choices) > 0 && tempResponse.Choices[0].Message.ToolCalls != nil && len(*tempResponse.Choices[0].Message.ToolCalls) > 0 {
+					Log.WithFields(logrus.Fields{
+						"key_suffix":  utils.SafeSuffix(currentOpenRouterKey),
+						"tool_calls":  len(*tempResponse.Choices[0].Message.ToolCalls),
+					}).Info("非流式响应包含工具调用。")
+				}
+			}
+			// --- 日志增强结束 ---
 
 			// 将响应体直接透传给客户端。
 			c.Data(http.StatusOK, resp.Header.Get("Content-Type"), bodyBytes) // 使用上游的 Content-Type
@@ -685,14 +723,33 @@ func processStreamingResponse(
 					// 尝试解析数据块，检查是否包含实际内容。
 					if errJson := json.Unmarshal([]byte(dataContent), &chunk); errJson == nil {
 						// 检查 Delta.Content 是否非空。
-						if len(chunk.Choices) > 0 && chunk.Choices[0].Delta.Content != nil && *chunk.Choices[0].Delta.Content != "" {
-							Log.Infof("processStreamingResponse: 收到首块有意义聊天数据 (密钥: %s): %q", utils.SafeSuffix(currentOpenRouterKey), *chunk.Choices[0].Delta.Content)
-							atomic.StoreInt32(&receivedMeaningfulData, 1) // 标记已收到有意义数据。
-							if meaningfulDataTimer != nil {
-								meaningfulDataTimer.Stop() // 停止 meaningfulDataTimer。
+						if len(chunk.Choices) > 0 {
+							// 检查并记录 finish_reason
+							if chunk.Choices[0].FinishReason != nil && *chunk.Choices[0].FinishReason == "tool_calls" {
+								Log.WithFields(logrus.Fields{
+									"key_suffix": utils.SafeSuffix(currentOpenRouterKey),
+									"reason":     "tool_calls",
+								}).Info("流式响应因工具调用而结束。")
 							}
-							clearReadDeadlineWrapper()                       // 清除特定的短时读取超时。
-							ApiKeyMgr.RecordKeySuccess(currentOpenRouterKey) // 收到有意义数据，认为密钥是好的
+
+							if atomic.LoadInt32(&receivedMeaningfulData) == 0 && chunk.Choices[0].Delta.Content != nil && *chunk.Choices[0].Delta.Content != "" {
+								Log.Infof("processStreamingResponse: 收到首块有意义聊天数据 (密钥: %s): %q", utils.SafeSuffix(currentOpenRouterKey), *chunk.Choices[0].Delta.Content)
+								atomic.StoreInt32(&receivedMeaningfulData, 1) // 标记已收到有意义数据。
+								if meaningfulDataTimer != nil {
+									meaningfulDataTimer.Stop() // 停止 meaningfulDataTimer。
+								}
+								clearReadDeadlineWrapper()                       // 清除特定的短时读取超时。
+								ApiKeyMgr.RecordKeySuccess(currentOpenRouterKey) // 收到有意义数据，认为密钥是好的
+							} else if atomic.LoadInt32(&receivedMeaningfulData) == 0 && chunk.Choices[0].Delta.ToolCalls != nil {
+								// 如果首个有意义的数据是 tool_calls 而不是 content
+								Log.Infof("processStreamingResponse: 收到首块有意义工具调用数据 (密钥: %s)", utils.SafeSuffix(currentOpenRouterKey))
+								atomic.StoreInt32(&receivedMeaningfulData, 1) // 标记已收到有意义数据。
+								if meaningfulDataTimer != nil {
+									meaningfulDataTimer.Stop()
+								}
+								clearReadDeadlineWrapper()
+								ApiKeyMgr.RecordKeySuccess(currentOpenRouterKey)
+							}
 						} else {
 							Log.Debugf("processStreamingResponse: 收到数据块，但内容为空或非聊天内容 (密钥 %s): %q", utils.SafeSuffix(currentOpenRouterKey), dataContent)
 						}

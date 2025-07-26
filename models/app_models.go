@@ -43,7 +43,6 @@ type AppStatusInfo struct {
 	RetryWithNewKeyCount       int       `json:"retry_with_new_key_count"`      // 当一个密钥失败时，尝试使用其他密钥的次数
 	HealthCheckIntervalSeconds float64   `json:"health_check_interval_seconds"` // API 密钥健康检查的间隔时间（秒）
 	Port                       string    `json:"port"`                          // 应用监听的端口号
-	AdminAPIKeyConfigured      bool      `json:"admin_api_key_configured"`      // 【旧】是否配置了基于 Header 的管理员 API 密钥 (ADMIN_API_KEY)
 	LogLevel                   string    `json:"log_level"`                     // 当前配置的日志级别
 	GinMode                    string    `json:"gin_mode"`                      // 当前 Gin 框架的运行模式 (debug/release)
 	AdminPasswordConfigured    bool      `json:"admin_password_configured"`     // 【新增】仪表盘登录密码是否已配置且不是默认密码 (用于提示安全性)

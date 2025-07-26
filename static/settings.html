@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>热载荷参数配置 - OpenRouter 代理核心</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #00ffff; --secondary-color: #f0f8ff; --background-color: #0a0f1f;
+            --container-bg: rgba(10, 25, 47, 0.85); --section-bg: rgba(15, 30, 57, 0.7);
+            --border-color: rgba(0, 255, 255, 0.3); --glow-color: rgba(0, 255, 255, 0.5);
+            --input-bg: rgba(255, 255, 255, 0.05); --input-border-color: rgba(0, 255, 255, 0.2);
+            --input-disabled-bg: rgba(255, 255, 255, 0.02); --input-disabled-border: rgba(0, 255, 255, 0.1);
+            --button-primary-bg-start: var(--primary-color); --button-primary-bg-end: #007bff;
+            --button-primary-hover-bg-start: #00d4ff; --button-primary-hover-bg-end: var(--primary-color);
+            --button-primary-shadow: rgba(0, 191, 255, 0.4); --button-primary-hover-shadow: var(--primary-color);
+            --font-primary: 'Orbitron', sans-serif; --font-secondary: 'Roboto', sans-serif;
+        }
+        body {
+            font-family: var(--font-secondary); margin: 0; background-color: var(--background-color);
+            color: var(--secondary-color); display: flex; flex-direction: column; min-height: 100vh;
+            background-image: radial-gradient(circle at 15% 85%, rgba(0, 191, 255, 0.15) 0%, transparent 50%), radial-gradient(circle at 85% 15%, rgba(75, 0, 130, 0.15) 0%, transparent 50%);
+        }
+        .header {
+            background: linear-gradient(135deg, rgba(10, 25, 47, 0.9), rgba(0, 100, 150, 0.7));
+            color: white; padding: 20px 40px; display: flex; justify-content: space-between;
+            align-items: center; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); border-bottom: 1px solid var(--border-color);
+            position: sticky; top: 0; z-index: 1000; backdrop-filter: blur(5px);
+        }
+        .header h1 { margin: 0; font-size: 2em; font-family: var(--font-primary); letter-spacing: 1px; text-shadow: 0 0 8px var(--primary-color); }
+        .container { max-width: 900px; margin: 30px auto; padding: 30px; background-color: var(--container-bg); border-radius: 10px; border: 1px solid var(--border-color); box-shadow: 0 0 30px var(--glow-color), 0 0 60px var(--glow-color) inset; backdrop-filter: blur(10px); }
+        h2 { font-family: var(--font-primary); color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-top: 0; margin-bottom: 25px; font-size: 1.6em; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
+        .form-group { display: flex; flex-direction: column; }
+        label { margin-bottom: 8px; font-weight: 400; opacity: 0.9; }
+        label .description { font-size: 0.8em; opacity: 0.7; display: block; margin-top: 4px; }
+        input, select {
+            width: calc(100% - 28px); padding: 12px 14px; border: 1px solid var(--input-border-color);
+            border-radius: 6px; font-size: 0.95em; background-color: var(--input-bg);
+            color: var(--secondary-color); font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 10px var(--glow-color); }
+        input:disabled, select:disabled { background-color: var(--input-disabled-bg); border-color: var(--input-disabled-border); cursor: not-allowed; }
+        .form-actions { margin-top: 30px; display: flex; justify-content: flex-end; gap: 15px; }
+        button { padding: 12px 25px; font-family: var(--font-primary); background: linear-gradient(135deg, var(--button-primary-bg-start), var(--button-primary-bg-end)); color: var(--background-color); border: none; border-radius: 6px; cursor: pointer; font-size: 1em; font-weight: 700; transition: all 0.3s ease; box-shadow: 0 0 8px var(--button-primary-shadow); }
+        button:hover { background: linear-gradient(135deg, var(--button-primary-hover-bg-start), var(--button-primary-hover-bg-end)); box-shadow: 0 0 12px var(--button-primary-hover-shadow), 0 0 20px var(--button-primary-hover-shadow); transform: translateY(-2px); }
+        button:disabled { background: grey; cursor: not-allowed; box-shadow: none; opacity: 0.5; }
+        .back-button { background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); }
+        .back-button:hover { background: var(--primary-color); color: var(--background-color); }
+        .message { padding: 12px 18px; margin-bottom: 20px; border-radius: 6px; font-size: 0.9em; text-align: center; border: 1px solid transparent; display: none; }
+        .error { background-color: rgba(255, 77, 77, 0.15); color: #ff4d4d; border-color: #ff4d4d; }
+        .success { background-color: rgba(77, 255, 77, 0.15); color: #4dff4d; border-color: #4dff4d; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <h1>热载荷参数配置</h1>
+    <button onclick="window.location.href='/admin/dashboard'" class="back-button">返回仪表盘</button>
+</div>
+<div class="container">
+    <h2>动态调整服务参数</h2>
+    <div id="message" class="message"></div>
+    <form id="settingsForm">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="log_level">
+                    日志级别
+                    <span class="description">控制台输出的日志详细程度。</span>
+                </label>
+                <select id="log_level" name="log_level">
+                    <option value="trace">Trace</option>
+                    <option value="debug">Debug</option>
+                    <option value="info">Info</option>
+                    <option value="warn">Warn</option>
+                    <option value="error">Error</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="default_model">
+                    默认模型
+                    <span class="description">当请求未指定模型时使用的后备模型。</span>
+                </label>
+                <input type="text" id="default_model" name="default_model">
+            </div>
+            <div class="form-group">
+                <label for="request_timeout_seconds">
+                    请求超时 (秒)
+                    <span class="description">对上游 OpenRouter API 的请求超时时间。</span>
+                </label>
+                <input type="number" id="request_timeout_seconds" name="request_timeout_seconds" min="0">
+            </div>
+            <div class="form-group">
+                <label for="key_failure_cooldown_seconds">
+                    失败冷却时间 (秒)
+                    <span class="description">密钥失败后的基础冷却时长。</span>
+                </label>
+                <input type="number" id="key_failure_cooldown_seconds" name="key_failure_cooldown_seconds" min="0">
+            </div>
+            <div class="form-group">
+                <label for="key_max_consecutive_failures">
+                    最大失败次数
+                    <span class="description">密钥连续失败多少次后被标记为非活动。</span>
+                </label>
+                <input type="number" id="key_max_consecutive_failures" name="key_max_consecutive_failures" min="0">
+            </div>
+            <div class="form-group">
+                <label for="retry_with_new_key_count">
+                    失败重试次数
+                    <span class="description">一个密钥失败后，尝试使用多少个其他密钥。</span>
+                </label>
+                <input type="number" id="retry_with_new_key_count" name="retry_with_new_key_count" min="0">
+            </div>
+             <div class="form-group">
+                <label for="app_api_key">
+                    服务 API 密钥 (APP_API_KEY)
+                    <span class="description">保护 /v1 接口的密钥，留空则禁用认证。</span>
+                </label>
+                <input type="text" id="app_api_key" name="app_api_key">
+            </div>
+            <div class="form-group">
+                <label for="admin_password">
+                    管理员密码
+                    <span class="description">留空表示不修改当前密码。</span>
+                </label>
+                <input type="password" id="admin_password" name="admin_password" placeholder="留空不修改">
+            </div>
+            <div class="form-group">
+                <label for="health_check_interval_seconds">
+                    健康检查间隔 (秒)
+                    <span class="description">对非活动密钥进行健康检查的频率。需重启生效。</span>
+                </label>
+                <input type="number" id="health_check_interval_seconds" name="health_check_interval_seconds" min="0" disabled>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" id="saveButton">保存更改</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    const form = document.getElementById('settingsForm');
+    const saveButton = document.getElementById('saveButton');
+    const messageDiv = document.getElementById('message');
+
+    function showMessage(message, type = 'info') {
+        messageDiv.textContent = message;
+        messageDiv.className = 'message ' + type;
+        messageDiv.style.display = 'block';
+        setTimeout(() => { messageDiv.style.display = 'none'; }, 5000);
+    }
+
+    async function loadSettings() {
+        try {
+            const response = await fetch('/admin/settings');
+            if (!response.ok) {
+                if (response.status === 401) window.location.href = '/admin/login?reason=session_expired';
+                throw new Error('加载配置失败。');
+            }
+            const settings = await response.json();
+            for (const key in settings) {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.value = settings[key];
+                }
+            }
+        } catch (error) {
+            showMessage(error.message, 'error');
+        }
+    }
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        saveButton.disabled = true;
+        saveButton.textContent = '正在保存...';
+
+        const formData = new FormData(form);
+        const payload = {};
+        
+        // 构建 payload，只包含已更改或非空的字段
+        for (const [key, value] of formData.entries()) {
+            // 特殊处理密码：如果为空，则不发送
+            if (key === 'admin_password' && value === '') {
+                continue;
+            }
+            
+            const element = document.getElementById(key);
+            const originalValue = element.dataset.originalValue;
+
+            // 如果是数字类型，转换为 number
+            if (element.type === 'number') {
+                 payload[key] = value === '' ? null : Number(value);
+            } else {
+                 payload[key] = value;
+            }
+        }
+
+        try {
+            const response = await fetch('/admin/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error?.message || '保存失败。');
+            }
+            
+            showMessage(result.message || '配置已成功更新。', 'success');
+            // 重新加载以显示新值，并清除密码字段
+            document.getElementById('admin_password').value = '';
+            await loadSettings();
+
+        } catch (error) {
+            showMessage(error.message, 'error');
+        } finally {
+            saveButton.disabled = false;
+            saveButton.textContent = '保存更改';
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', loadSettings);
+</script>
+</body>
+</html>
