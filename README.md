@@ -1,194 +1,177 @@
-# OpenRouter API 轮询与密钥管理服务（个人）
+# OpenRouter API 代理与持久化管理核心
 
-这是一个使用 Go 语言编写的高性能 OpenRouter API 轮询服务。它提供了与 OpenAI API 兼容的接口，并内置了强大的 API 密钥管理、轮询、故障转移和 Web 管理仪表盘功能。该服务旨在帮助开发者更稳定、高效、经济地使用 OpenRouter 提供的多种大型语言模型。
+这是一个使用 Go 语言编写的高性能、数据库驱动的 OpenRouter API 代理服务。它不仅提供了与 OpenAI API 完全兼容的接口（包括流式响应和工具调用），还内置了强大的 API 密钥持久化管理、动态轮询、故障转移和功能丰富的 Web 管理仪表盘。
+
+与依赖环境变量的临时性方案不同，本服务通过 **数据库（支持 SQLite 和 MySQL）** 对所有 OpenRouter 密钥进行持久化管理，确保服务的健壮性和可扩展性。
 
 ## 核心特性
 
-*   ✨ **OpenAI API 兼容性**：提供 `/v1/models` 和 `/v1/chat/completions` 端点，可直接替换 OpenAI SDK 的 `baseURL`，无缝集成现有应用。
-*   🔑 **多密钥管理与轮询**：支持配置和管理多个 OpenRouter API 密钥，并进行轮询使用，有效分摊请求压力。
-*   ⚖️ **权重密钥选择**：可以为每个 OpenRouter API 密钥设置权重，实现加权随机选择，优先使用高额度或高性能的密钥。
-*   🔄 **自动故障转移与冷却**：当某个密钥请求失败（如额度耗尽、无效密钥、服务暂时不可用），系统会自动切换到下一个可用密钥，并对失败密钥进行动态冷却，避免短期内再次使用。
-*   🩺 **定期健康检查**：后台任务会定期对处于冷却或失败状态的密钥进行健康检查，一旦密钥恢复可用，则自动重新激活。
-*   💨 **流式响应支持**：完全支持 `/v1/chat/completions` 端点的流式响应 (`stream: true`)，提供与原生 API 一致的体验。
-*   🛡️ **安全管理**：
-    *   可选的服务 API 密钥 (`APP_API_KEY`) 用于保护代理服务自身的 `/v1` 接口。
-    *   基于会话的安全管理仪表盘，通过管理员密码 (`ADMIN_PASSWORD`) 进行保护。
-*   🖥️ **Web 管理仪表盘**：
-    *   **安全登录**：提供独立的登录页面进行身份验证。
-    *   **密钥状态监控**：实时查看所有 OpenRouter 密钥的当前状态（激活、冷却中、失败次数、上次使用时间等）。
-    *   **动态密钥管理**：通过仪表盘动态添加新的 OpenRouter 密钥（支持带权重格式）或删除现有密钥，无需重启服务。
-*   ⚙️ **灵活配置**：所有关键参数均可通过环境变量或 `.env` 文件进行配置。
-*   📝 **详细日志**：使用 Logrus 提供结构化、可配置级别的日志输出，方便问题排查和监控。
-*   🚀 **高性能**：基于 Gin Web 框架构建，并针对并发和性能进行了优化。
-*   🐳 **Docker 支持**: 提供 `Dockerfile` 示例，方便容器化部署。
+*   ✨ **OpenAI API 完全兼容**：提供 `/v1/models` 和 `/v1/chat/completions` 端点，可直接替换 OpenAI SDK 的 `baseURL`，无缝集成现有应用。
+*   🚀 **全功能支持**：
+    *   **流式响应** (`stream: true`)：提供与原生 API 一致的低延迟体验。
+    *   **工具调用 (Tool Calling)**：完全支持 OpenAI 的函数/工具调用功能。
+*   🔑 **持久化密钥管理 (数据库驱动)**：
+    *   **双数据库支持**：开箱即用地支持 **SQLite**（默认，零配置）和 **MySQL**，满足从个人项目到生产环境的不同需求。
+    *   **Web UI 管理**：通过管理仪表盘动态添加（单个或批量）、删除（单个或批量）密钥，所有变更实时生效，无需重启服务。
+    *   **环境变量植入**：支持在首次启动时从环境变量 `OPENROUTER_API_KEYS` 中自动“植入”初始密钥到数据库。
+*   ⚖️ **智能轮询与故障转移**：
+    *   **加权随机轮询**：可为每个密钥设置权重，优先使用高额度或高性能的密钥。
+    *   **自动故障转移**：当某个密钥请求失败（如额度耗尽、无效），系统会立即切换到下一个可用密钥重试。
+    *   **动态冷却系统**：失败的密钥会进入动态冷却期（失败次数越多，冷却时间越长），避免短期内对失效密钥的无效请求。
+*   🩺 **定期健康检查**：后台任务会定期对非活动密钥进行健康检查，一旦密钥恢复可用，则自动重新激活，实现“自愈”。
+*   🖥️ **多功能 Web 管理仪表盘**：
+    *   **安全登录**：通过管理员密码保护，使用安全的会话管理。
+    *   **密钥状态矩阵**：实时监控所有密钥的详细状态（激活、冷却、失败次数、上次使用/失败时间、权重等），支持 **分页浏览**。
+    *   **批量操作**：使用复选框选择多个密钥进行一次性删除。
+    *   **动态添加**：在文本框中粘贴一个或多个密钥（支持 `key:weight` 格式），一键添加。
+    *   **参数配置**：新增独立的 **设置页面**，可在线修改部分服务参数（如默认模型、超时时间、日志级别等）并立即生效。
+    *   **系统监控**：在“应用状态”页面查看服务的核心运行时指标。
+*   ⚙️ **高度可配置**：所有关键参数均可通过环境变量或 `.env` 文件进行配置。
+*   📝 **结构化日志**：使用 Logrus 提供详细、可配置级别的日志输出，方便问题排查。
+*   🐳 **Docker 支持**: 提供 `Dockerfile`，并包含数据持久化部署的最佳实践。
 
 ## 技术栈
 
 *   **Go**: 主要编程语言
 *   **Gin**: 高性能 HTTP Web 框架
+*   **GORM**: 强大的 ORM 框架，用于数据库交互 (SQLite, MySQL)
 *   **Logrus**: 结构化日志库
-*   **Gorilla Sessions**: 用于管理仪表盘的会话
-*   **godotenv**: 用于从 `.env` 文件加载环境变量
+*   **Gorilla Sessions**: 用于管理仪表盘的安全会话
 
 ## 快速开始
 
 ### 前提条件
 
 *   Go 1.23 或更高版本 (用于本地编译)
-*   Docker  (用于容器化部署)
+*   Docker & Docker Compose (推荐用于容器化部署)
 
-### 安装与运行 (本地编译)
+### 1. 本地编译运行
 
 1.  **克隆仓库**:
     ```bash
-    git clone https://github.com/ctl456/openrouter_polling.git
+    git clone https://github.com/your-username/openrouter_polling.git
     cd openrouter_polling
     ```
 
 2.  **配置环境变量**:
-    复制 `.env.example` (如果提供) 为 `.env` 文件，或者直接创建 `.env` 文件，并根据下面的 "配置说明" 章节填写必要的配置。
+    复制 `.env.example` 为 `.env` 文件，并根据“配置说明”章节填写必要配置。对于本地测试，默认的 SQLite 配置通常无需修改。
+    ```bash
+    cp .env.example .env
+    ```
+    **首次启动时**，你可以在 `.env` 文件中设置 `OPENROUTER_API_KEYS` 来植入初始密钥。
 
 3.  **编译**:
     ```bash
     go build -o openrouter-polling .
     ```
-    这会在项目根目录下生成一个名为 `openrouter-polling` 的可执行文件。
 
 4.  **运行服务**:
     ```bash
     ./openrouter-polling
     ```
-    服务启动后，你会看到日志输出，包括监听的端口和配置信息。
+    服务启动后，将会在项目根目录创建 `openrouter_keys.db` (SQLite 数据库文件)。
 
-### 使用 Docker 部署
+### 2. 使用 Docker 部署 (推荐)
 
-本项目提供了 `Dockerfile` 用于容器化部署。
+使用 Docker 是最佳的部署方式，可以轻松实现数据持久化。
 
-**1. 直接使用 Dockerfile 构建和运行（推荐）**
+1.  **准备 `.env` 文件**:
+    同样，复制 `.env.example` 为 `.env`，并根据你的需求修改。确保设置了强密码 `ADMIN_PASSWORD`。
 
-a. **构建 Docker 镜像**:
-在项目根目录下运行：
-```bash
-docker build -t openrouter-polling:latest .
-```
-(你可以自定义镜像标签，例如 `yourname/openrouter-polling:v1.0`)
-
-b. **运行 Docker 容器**:
-```bash
-docker run -d \
-  -p 8000:8000 \
-  --name my-openrouter-polling \
-  -e OPENROUTER_API_KEYS="sk-or-v1key1...,sk-or-v1key2...:5" \
-  -e ADMIN_PASSWORD="your_strong_admin_password" \
-  -e APP_API_KEY="sk-xxxx" \
-  -e GIN_MODE="release" \
-  -e LOG_LEVEL="info" \
-  -e PORT="8000" \
-  -e DEFAULT_MODEL="deepseek/deepseek-chat-v3-0324:free" \
-  # 添加其他必要的环境变量
-  openrouter-polling:latest
-```
-*   `-d`: 后台运行。
-*   `-p 8000:8000`: 将主机的 8000 端口映射到容器的 8000 端口。
-*   `--name`: 给容器命名。
-*   `-e`: 设置环境变量。**请务必替换示例值为你的真实配置。**
+2.  **构建并运行容器**:
+    在项目根目录下运行以下命令：
+    ```bash
+    docker build -t openrouter-polling:latest .
+    ```
+    然后使用以下命令运行容器，**注意 `-v` 参数用于持久化 SQLite 数据库**：
+    ```bash
+    docker run -d \
+      -p 8000:8000 \
+      --name my-openrouter-polling \
+      --restart always \
+      -v $(pwd)/data:/app/data \
+      --env-file ./.env \
+      openrouter-polling:latest
+    ```
+    *   `-d`: 后台运行。
+    *   `-p 8000:8000`: 将主机的 8000 端口映射到容器的 8000 端口。
+    *   `--restart always`: 确保容器在退出时总是自动重启。
+    *   `-v $(pwd)/data:/app/data`: **(关键)** 将主机当前目录下的 `data` 文件夹挂载到容器的 `/app/data` 目录。请修改 `.env` 文件中的 `DB_CONNECTION_STRING_SQLITE` 为 `data/openrouter_keys.db` 以将数据库文件保存在此持久化目录中。
+    *   `--env-file ./.env`: 从 `.env` 文件加载所有环境变量，这是管理配置的最佳方式。
 
 ## 配置说明
 
-通过环境变量配置服务。如果使用本地编译运行方式，可以将这些变量写入项目根目录下的 `.env` 文件中，应用会自动加载。对于 Docker 部署，请通过 `docker run -e` 或 `docker-compose.yml` 的 `environment` 部分传递环境变量。
+通过环境变量或项目根目录的 `.env` 文件配置服务。Docker 部署时推荐使用 `--env-file`。
 
-| 环境变量                    | 描述                                                                                               | 默认值/重要性                                                    |
-| :-------------------------- | :------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------- |
-| `OPENROUTER_API_KEYS`     | **必需**。OpenRouter API 密钥列表，逗号分隔。格式：`key1,key2:weight,key3`。权重为可选整数，默认为1。 | 无默认值                                                         |
-| `ADMIN_PASSWORD`          | **必需**。管理仪表盘的登录密码。                                                                         | `"admin"` (强烈建议修改!)                                        |
-| `APP_API_KEY`             | 可选。如果设置，则所有对 `/v1/*` 接口的请求都需要在 `Authorization` 头部提供 `Bearer <APP_API_KEY>`。       | 空 (不启用保护)                                                  |
-| `PORT`                      | 服务监听的端口号 (在容器内部)。对于 Docker，通常固定为 `8000`，通过端口映射暴露。                             | `"8000"`                                                         |
-| `LOG_LEVEL`                 | 日志级别：`trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic`。                                | `"info"`                                                         |
-| `GIN_MODE`                  | Gin 框架运行模式：`debug` 或 `release`。生产环境推荐 `release`。                                         | `"debug"`                                                        |
-| `DEFAULT_MODEL`             | 如果客户端请求中未指定模型，则使用的默认模型 ID。                                                              | `"deepseek/deepseek-chat-v3-0324:free"`                                       |
-| `REQUEST_TIMEOUT_SECONDS`   | 对 OpenRouter 发出请求的超时时间（秒）。                                                                 | `180` (3 分钟)                                                   |
-| `KEY_FAILURE_COOLDOWN_SECONDS` | API 密钥失败后的基础冷却时间（秒）。实际冷却时间可能会根据连续失败次数动态增加。                                       | `600` (10 分钟)                                                  |
-| `KEY_MAX_CONSECUTIVE_FAILURES` | API 密钥在被标记为非活动状态前的最大连续失败次数。                                                              | `3`                                                              |
-| `RETRY_WITH_NEW_KEY_COUNT`  | 当一个密钥失败时，尝试使用池中其他密钥的次数。                                                                  | `3`                                                              |
-| `HEALTH_CHECK_INTERVAL_SECONDS` | 对非活动密钥进行健康检查的间隔时间（秒）。                                                                   | `300` (5 分钟)                                                   |
-| `HTTP_REFERER`              | (可选) 发往 OpenRouter 请求时携带的 `HTTP-Referer` 头部内容。                                                 | `"https://your-app-name.com"`                                  |
-| `X_TITLE`                   | (可选) 发往 OpenRouter 请求时携带的 `X-Title` 头部内容。                                                    | `"Your App Name"`                                                |
-| `OPENROUTER_API_URL`        | OpenRouter 聊天 API 的目标 URL。                                                                           | `"https://openrouter.ai/api/v1/chat/completions"`              |
-| `OPENROUTER_MODELS_URL`     | OpenRouter 模型列表 API 的目标 URL。                                                                       | `"https://openrouter.ai/api/v1/models"`                        |
+### 数据库配置
+
+| 环境变量                      | 描述                                                                                                                            | 默认值                  |
+| :---------------------------- | :------------------------------------------------------------------------------------------------------------------------------ | :---------------------- |
+| `DB_TYPE`                     | **必需**。数据库类型，支持 `"sqlite"` 或 `"mysql"`。                                                                              | `"sqlite"`              |
+| `DB_CONNECTION_STRING_SQLITE` | 当 `DB_TYPE="sqlite"` 时使用。数据库文件路径。推荐使用 `data/openrouter_keys.db` 以配合 Docker volume。                           | `"openrouter_keys.db"`  |
+| `MYSQL_HOST`                  | 当 `DB_TYPE="mysql"` 时使用。MySQL 服务器地址。                                                                                   | `127.0.0.1`             |
+| `MYSQL_PORT`                  | MySQL 端口。                                                                                                                    | `3306`                  |
+| `MYSQL_DBNAME`                | MySQL 数据库名。                                                                                                                | `openrouter_proxy`      |
+| `MYSQL_USER`                  | MySQL 用户名。                                                                                                                  | `root`                  |
+| `MYSQL_PASSWORD`              | MySQL 密码。                                                                                                                    | 无                      |
+
+### 核心配置
+
+| 环境变量                    | 描述                                                                                                                            | 默认值/重要性                                                    |
+| :-------------------------- | :------------------------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------- |
+| `ADMIN_PASSWORD`            | **必需**。管理仪表盘的登录密码。                                                                                                  | `"123456"` (**极不安全, 必须修改!**)                               |
+| `OPENROUTER_API_KEYS`       | **仅用于首次启动植入**。逗号分隔的 OpenRouter 密钥列表 (`key1,key2:weight`)。服务启动后，密钥管理完全由数据库和仪表盘接管。        | 空                                                               |
+| `APP_API_KEY`               | 可选。用于保护 `/v1/*` 代理接口。如果设置，客户端请求头需包含 `Authorization: Bearer <APP_API_KEY>`。                               | 空 (不启用保护)                                                  |
+| `PORT`                      | 服务监听的端口号。                                                                                                                | `"8000"`                                                         |
+| `GIN_MODE`                  | Gin 运行模式：`debug` 或 `release`。生产环境推荐 `release`。                                                                      | `"debug"`                                                        |
+| `LOG_LEVEL`                 | 日志级别：`trace`, `debug`, `info`, `warn`, `error`, `fatal`, `panic`。                                                              | `"info"`                                                         |
+| `DEFAULT_MODEL`             | 如果客户端请求中未指定模型，则使用的默认模型 ID。                                                                                   | `"deepseek/deepseek-chat-v3-0324:free"`                          |
+| `REQUEST_TIMEOUT_SECONDS`   | 对 OpenRouter 发出请求的超时时间（秒）。                                                                                          | `180` (3 分钟)                                                   |
+| `KEY_FAILURE_COOLDOWN_SECONDS` | API 密钥失败后的基础冷却时间（秒）。                                                                                              | `600` (10 分钟)                                                  |
+| `KEY_MAX_CONSECUTIVE_FAILURES` | 密钥在被标记为非活动状态前的最大连续失败次数。                                                                                      | `3`                                                              |
+| `RETRY_WITH_NEW_KEY_COUNT`  | 当一个密钥失败时，尝试使用池中其他密钥的次数。                                                                                      | `4`                                                              |
+| `HEALTH_CHECK_INTERVAL_SECONDS` | 对非活动密钥进行健康检查的间隔时间（秒）。                                                                                        | `300` (5 分钟)                                                   |
 
 ## API 端点
 
-### 代理接口 (受 `APP_API_KEY` 保护，如果已配置)
+### 代理接口 (受 `APP_API_KEY` 保护)
 
-*   **GET `/v1/models`**: 获取 OpenAI 格式的模型列表。服务会从 OpenRouter 获取模型列表并转换为兼容格式。
-*   **POST `/v1/chat/completions`**: 处理聊天请求，支持流式 (`stream: true`) 和非流式响应。请求体和响应体与 OpenAI API 规范兼容。
+*   **GET `/v1/models`**: 获取 OpenAI 格式的模型列表。
+*   **POST `/v1/chat/completions`**: 处理聊天请求，支持流式、非流式和工具调用。
 
-### 管理接口
+### 管理接口 (受会话 Cookie 保护)
 
 *   **GET `/admin/login`**: 显示管理员登录页面。
-*   **POST `/admin/login`**: 处理管理员登录请求。
-    *   请求体: `{"password": "YOUR_ADMIN_PASSWORD"}`
-*   **GET `/admin/dashboard`**: (需要登录) 显示管理仪表盘页面。
-*   **POST `/admin/logout`**: (需要登录) 管理员登出。
-*   **GET `/admin/key-status`**: (需要登录) 获取所有 OpenRouter API 密钥的当前状态。
-*   **POST `/admin/add-key`**: (需要登录) 添加一个新的 OpenRouter API 密钥。
-    *   请求体: `{"openrouter_api_key": "sk-or-v1yourkeyhere"}` 或 `{"openrouter_api_key": "sk-or-v1yourkeyhere:5"}` (带权重)
-*   **DELETE `/admin/delete-key/:suffix`**: (需要登录) 根据密钥的后缀删除一个 OpenRouter API 密钥。
-    *   例如: `DELETE /admin/delete-key/...xyz` (其中 `...xyz` 是密钥的末尾4位，由 `utils.SafeSuffix` 生成)
-*   **GET `/admin/app-status`**: (需要登录) 获取应用程序的运行时状态和配置信息。
-*   **POST `/admin/reload-keys`**: (需要登录) 使用提供的密钥字符串批量重新加载所有密钥 (会覆盖现有密钥)。
-    *   请求体: `{"openrouter_api_keys_str": "keyA,keyB:2,..."}`
+*   **POST `/admin/login`**: 处理管理员登录。
+*   **GET `/admin/dashboard`**: 显示管理仪表盘主页面。
+*   **POST `/admin/logout`**: 管理员登出。
+*   **GET `/admin/key-status`**: 获取密钥状态列表（支持分页 `?page=1&limit=10`）。
+*   **POST `/admin/add-keys`**: 批量添加新密钥。
+*   **DELETE `/admin/delete-key/:suffix`**: 删除单个密钥。
+*   **POST `/admin/delete-keys-batch`**: 批量删除选中的密钥。
+*   **GET `/admin/app-status`**: 获取应用运行时状态。
+*   **GET `/admin/settings-page`**: 显示动态配置页面。
+*   **GET `/admin/settings`**: 获取当前可热重载的配置。
+*   **POST `/admin/settings`**: 更新并热重载配置。
 
 ## 管理仪表盘
 
-通过浏览器访问 `http://<你的服务器地址>:<映射的主机端口>/admin/login` (例如 `http://localhost:8000/admin/login` 或你在 Docker 映射的其他端口)。
-使用你在环境变量中配置的 `ADMIN_PASSWORD` 登录。
+通过浏览器访问 `http://<你的服务器地址>:<端口>/admin/login` (例如 `http://localhost:8000/admin/login`)。
 
-登录后，你将能够：
-
-*   查看所有已配置的 OpenRouter API 密钥及其详细状态：
-    *   密钥后缀 (用于识别)
-    *   是否激活
-    *   连续失败次数
-    *   上次失败时间
-    *   冷却截止时间
-    *   上次使用时间
-    *   权重
-*   动态添加新的 OpenRouter API 密钥（支持 `key:weight` 格式）。
-*   根据密钥后缀动态移除不再需要的密钥。
-*   手动刷新密钥状态列表。
-*   安全登出。
+**功能亮点**:
+*   **密钥矩阵**: 在一个清晰的表格中查看所有密钥的实时状态，支持分页。
+*   **批量操作**: 使用复选框选择多个密钥进行一次性删除。
+*   **动态添加**: 在文本框中粘贴一个或多个密钥（支持 `key:weight` 格式），一键添加。
+*   **参数配置**: 访问独立的“设置”页面，动态调整日志级别、默认模型、超时等参数，无需重启服务。
+*   **系统监控**: 在“应用状态”页面查看服务的核心运行时指标。
 
 ## 安全注意事项
 
-*   🔒 **强烈建议修改默认密码和密钥**：
-    *   **`ADMIN_PASSWORD`**: 默认的 `"admin"` 密码极不安全，请务必在首次部署时修改为一个强密码。
-*   🛡️ **保护代理接口**: 如果你的服务将暴露在公网上，强烈建议配置 `APP_API_KEY`，并要求所有调用 `/v1/*` 接口的客户端在 `Authorization` 头部提供此密钥 (格式: `Bearer <APP_API_KEY>`)。
-*   🌐 **HTTPS**: 在生产环境中，强烈建议将此服务部署在 HTTPS 反向代理（如 Nginx, Caddy, Traefik）之后。如果直接暴露服务并使用 HTTPS，请确保在 `main.go` 中正确配置会话 Cookie 的 `Secure` 标志为 `true` (对于Docker部署，如果反向代理处理SSL终止，则可能不需要在应用层面设置Secure)。
-*   🔑 **API 密钥安全**:
-    *   对于本地编译运行，确保包含 `OPENROUTER_API_KEYS` 的 `.env` 文件安全，不要提交到公共代码仓库。
-    *   对于 Docker 部署，通过环境变量传递敏感信息，并确保管理好这些环境变量的来源 (例如，Docker Compose 的 `.env` 文件要加入 `.gitignore`，或者使用 CI/CD 系统的 secrets 功能)。**不要将密钥硬编码到 Dockerfile 或 docker-compose.yml 文件中并提交。**
-
-## 并发与性能
-
-*   **并发安全**: 项目中的 `ApiKeyManager` 使用 `sync.Mutex` 来保护对密钥状态列表的并发访问，确保了在多 goroutine 环境下的数据一致性和线程安全。
-*   **HTTP 客户端**: 全局共享一个配置了连接池和合理超时的 `http.Client` 实例，以提高向上游 OpenRouter 发出请求的效率和性能。
-*   **Gin 框架**: Gin 本身是一个为高性能设计的 Web 框架。在 `release` 模式下运行时，它会提供最佳性能。
-*   **流式处理**: 对聊天完成的流式响应进行了优化，使用带缓冲的读取器 (`bufio.Reader`) 并及时刷新 (`http.Flusher`) 输出，以确保低延迟。
-*   **健康检查**: 健康检查在独立的 goroutine 中异步执行，不会阻塞主请求处理流程。
-
-## 后期维护与扩展
-
-*   **模块化设计**: 代码被组织到不同的包中，使得各个功能模块职责清晰，易于理解、修改和扩展。
-*   **配置驱动**: 大部分行为可以通过环境变量进行配置，方便在不同环境（开发、测试、生产）中部署和调整。
-*   **注释与文档**: 关键代码段均包含中文注释，此 README 文件也提供了全面的项目说明。
-*   **错误处理**: 尝试提供统一和信息丰富的错误响应，便于客户端调试。
-
-## 贡献
-
-欢迎提交 Pull Request 或 Issue 来改进此项目！
+*   🔒 **管理员密码**: **必须**修改 `ADMIN_PASSWORD` 为一个强密码。
+*   🛡️ **保护代理接口**: 如果服务暴露于公网，**强烈建议**配置 `APP_API_KEY`。
+*   🌐 **数据库安全**: 如果使用 MySQL，请确保数据库连接信息的安全。如果使用 SQLite，请确保数据库文件 (`.db`) 不会通过任何Web服务被意外暴露。
+*   🔑 **HTTPS**: 在生产环境中，强烈建议将此服务部署在 Nginx, Caddy 等反向代理之后，并启用 HTTPS。
 
 ## 许可证
 
-This repository is licensed under the [MIT License](https://github.com/ctl456/openrouter_polling/blob/main/LICENSE)
-
+This repository is licensed under the [MIT License](LICENSE).
